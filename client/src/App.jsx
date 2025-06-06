@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
 import './App.css';
-import Home from './Home';
-import Login from './login';
+import Home from './pages/Home';
+import Login from './pages/login';
 
 function App() {
   const [showDashboard, setShowDashboard] = useState(false);
