@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import './App.css';
-import Dashboard from './Dashboard';
+import Home from './Home';
 import Login from './login';
 
 function App() {
@@ -10,7 +10,7 @@ function App() {
   return (
     <div className="a">
       {showDashboard ? (
-        <Dashboard />
+        <Home />
       ) : (
         <Login onSuccess={() => setShowDashboard(true)} />
       )}
