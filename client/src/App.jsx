@@ -1,15 +1,21 @@
-import { useState } from 'react'
-import './App.css'
-import Dashboard from './Dashboard'
+
+import { useState } from 'react';
+import './App.css';
+import Dashboard from './Dashboard';
+import Login from './login';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [showDashboard, setShowDashboard] = useState(false);
 
   return (
-    <div className="dashboard">
+    <div className="a">
+      {showDashboard ? (
         <Dashboard />
+      ) : (
+        <Login onSuccess={() => setShowDashboard(true)} />
+      )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
