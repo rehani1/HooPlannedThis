@@ -1,3 +1,4 @@
+// src/components/Layout.jsx
 import React from 'react';
 import NavBar from './NavBar';
 import CalendarIcon from './CalendarIcon';
@@ -5,16 +6,21 @@ import './Layout.css';
 
 const Layout = ({ children }) => {
   return (
-    <div className="layout-container">
-      <div className="NavBar">
-        <NavBar />
-      </div>
-      <div className="main-content">
-        <header className="top-header">
-          <div><CalendarIcon/> HooPlannedThis</div>
-        </header>
-        <div className="page-content">
-          {children}
+    <div className="layout-wrapper">
+      <header className="top-header">
+        <div className="logo-with-icon">
+          <CalendarIcon />
+          <span>HooPlannedThis</span>
+        </div>
+        {/* You can add icons or user menu on the right if needed */}
+      </header>
+
+      <div className="layout-container">
+        <div className="NavBar">
+          <NavBar />
+        </div>
+        <div className="main-content">
+          <div className="page-content">{children}</div>
         </div>
       </div>
     </div>
@@ -22,6 +28,7 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
+
 
 
 
