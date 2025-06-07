@@ -1,0 +1,30 @@
+.layout-container {
+    display: flex;
+    height: 100vh;
+  }
+  
+  .main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f6f6f6;
+  }
+  
+  .top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    padding: 0 20px;
+    background-color: white;
+    border-bottom: 1px solid #ddd;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  
+  .page-content {
+    padding: 30px;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
