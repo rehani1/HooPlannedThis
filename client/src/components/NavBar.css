@@ -54,4 +54,15 @@
     font-size: 16px;
     flex-shrink: 0;
   }
+
+  .nav-list a {
+    color: white;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  
+  .nav-list a:hover {
+    color: #ff8937; /* orange on hover */
+  }
+  
   

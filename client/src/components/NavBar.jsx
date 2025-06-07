@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './NavBar.css';
 import { FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
@@ -10,8 +11,9 @@ const NavBar = () => {
         <h4 className="section-title">Navigation</h4>
         <ul className="nav-list">
           <li>Class Council</li>
-          <li>Committee</li>
-          <li>Events</li>
+          <li><Link to="/committees">Committees</Link></li>
+          <li><Link to="/events">Events</Link></li>
+
           <li>Budget</li>
           <li>Volunteer Sign Ups</li>
         </ul>
