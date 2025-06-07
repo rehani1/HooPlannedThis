@@ -1,0 +1,12 @@
+.navbar{
+    width: 200px;
+    height: 100vh;
+    background-color: #003366;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    font-family: 'Montserrat', sans-serif;
+
+}
