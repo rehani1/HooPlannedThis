@@ -4,6 +4,8 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import Events from './pages/Events'; 
 import Committees from './pages/Committees';
+import Profile from './pages/Profile';
+import ClassCouncil from './pages/ClassCouncil';
 
 function App() {
   const isAuthenticated = true; 
@@ -14,6 +16,8 @@ function App() {
       <Route path="/home" element={isAuthenticated ? <Home /> : <Navigate to="/login" />} />
       <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/login" />} />
       <Route path="/committees" element={isAuthenticated ? <Committees /> : <Navigate to="/login" />} />
+      <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+      <Route path="/classcouncil" element={isAuthenticated ? <ClassCouncil /> : <Navigate to="/login" />} />
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
   );
