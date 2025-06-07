@@ -12,7 +12,7 @@ const Layout = ({ children }) => {
           <CalendarIcon />
           <span>HooPlannedThis</span>
         </div>
-        {/* You can add icons or user menu on the right if needed */}
+        {}
       </header>
 
       <div className="layout-container">

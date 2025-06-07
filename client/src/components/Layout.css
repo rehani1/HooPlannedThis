@@ -1,4 +1,4 @@
-/* Layout.css */
+
 
 html, body, #root {
     height: 100%;
@@ -6,7 +6,7 @@ html, body, #root {
     padding: 0;
   }
   
-  /* Overall wrapper that includes header + body */
+  
   .layout-wrapper {
     height: 100vh;
     width: 100vw;
@@ -14,7 +14,7 @@ html, body, #root {
     flex-direction: column;
   }
   
-  /* Top header that spans full width */
+ 
   .top-header {
     height: 60px;
     width: 100%;
@@ -43,7 +43,7 @@ html, body, #root {
     fill: #ff8937;
   }
   
-  /* Below header: sidebar + content */
+
   .layout-container {
     flex-grow: 1;
     display: flex;
@@ -51,7 +51,7 @@ html, body, #root {
     overflow: hidden;
   }
   
-  /* Sidebar styles */
+
   .NavBar {
     width: 220px;
     background-color: #003366;
@@ -63,7 +63,7 @@ html, body, #root {
     box-sizing: border-box;
   }
   
-  /* Right-side content wrapper */
+ 
   .main-content {
     flex-grow: 1;
     display: flex;
@@ -72,7 +72,7 @@ html, body, #root {
     overflow: hidden;
   }
   
-  /* Actual scrollable content */
+
   .page-content {
     flex-grow: 1;
     overflow-y: auto;
