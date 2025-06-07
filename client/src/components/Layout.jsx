@@ -12,7 +12,6 @@ const Layout = ({ children }) => {
       <div className="main-content">
         <header className="top-header">
           <div><CalendarIcon/> HooPlannedThis</div>
-          
         </header>
         <div className="page-content">
           {children}
