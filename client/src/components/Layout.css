@@ -1,4 +1,68 @@
-.layout-container {
+
+/* Layout.css */
+
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Whole page layout */
+  .layout-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+  
+  /* Sidebar = your NavBar */
+  .NavBar {
+    width: 220px;
+    height: 100vh;
+    background-color: #003366;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+  }
+  
+  /* Right side (main area) */
+  .main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f6f6f6;
+    overflow: hidden;
+  }
+  
+  /* Header bar across the top */
+  .top-header {
+    height: 60px;
+    background-color: white;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    color: #003366;
+  }
+  
+  /* Scrollable page content area */
+  .page-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 24px;
+    font-family: 'Montserrat', sans-serif;
+  }
+  
+
+
+
+/* .layout-container {
     display: flex;
     height: 100vh;
   }
@@ -27,4 +91,4 @@
     padding: 30px;
     overflow-y: auto;
     flex-grow: 1;
-  }
+  } */

@@ -22,7 +22,7 @@ import CalendarIcon from '../components/CalendarIcon';
 const Home = () => {
   return (
     <Layout>
-      <h1>Welcome to HooPlannedThis!<CalendarIcon /></h1>
+      <h1><CalendarIcon /> Welcome to HooPlannedThis!</h1>
       <p>This is the home page.</p>
     </Layout>
   );
