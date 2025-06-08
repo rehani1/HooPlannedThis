@@ -1,9 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import CalendarComponent from '../components/CalendarComponent';
+import Layout from '../components/Layout';
+import CalendarIcon from '../components/CalendarIcon';
+
+
 
 const Events = () => {
   return (
+    <Layout>
     <div>
       <h1>Events Page</h1>
       <p>This is where your events will be listed.</p>
@@ -24,7 +29,9 @@ const Events = () => {
         </button>
       </Link>
     </div>
+    </Layout>
   );
+  
 };
 
 export default Events;

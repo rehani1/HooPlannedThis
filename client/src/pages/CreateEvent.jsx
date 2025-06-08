@@ -1,6 +1,11 @@
 
 
 import React, { useState } from 'react';
+import Layout from '../components/Layout';
+import CalendarIcon from '../components/CalendarIcon';
+import CalendarComponent from '../components/CalendarComponent';
+
+
 
 const CreateEvent = () => {
   const [formData, setFormData] = useState({
@@ -22,6 +27,7 @@ const CreateEvent = () => {
   };
 
   return (
+    <Layout>
     <div style={{ padding: '40px' }}>
       <h1>Create a New Event</h1>
       <form onSubmit={handleSubmit} style={{ maxWidth: '500px', marginTop: '20px' }}>
@@ -81,6 +87,7 @@ const CreateEvent = () => {
         </button>
       </form>
     </div>
+    </Layout>
   );
 };
 
