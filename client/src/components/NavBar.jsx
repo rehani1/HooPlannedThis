@@ -25,7 +25,7 @@ const NavBar = () => {
         <ul className="nav-list">
           <li><FaUser className="icon" /> <Link to="/profile">Profile</Link></li>
           <li><FaCog className="icon" /> Settings</li>
-          <li><FaSignOutAlt className="icon" /> Log Out</li>
+          <li><FaSignOutAlt className="icon" /><Link to="/login">Log Out</Link></li>
         </ul>
       </div>
     </div>
