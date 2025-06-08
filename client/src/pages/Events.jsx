@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import CalendarComponent from '../components/CalendarComponent';
 
 const Events = () => {
   return (
     <div>
       <h1>Events Page</h1>
       <p>This is where your events will be listed.</p>
+      <CalendarComponent/>
 
       <Link to="/events/createevent">
         <button style={{
