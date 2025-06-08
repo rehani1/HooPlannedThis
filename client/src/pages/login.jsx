@@ -1,6 +1,8 @@
 
 import React from 'react';
-import CalendarIcon from '../components/CalendarIcon'; // adjust path if needed
+import CalendarIcon from '../components/CalendarIcon'; 
+import { useNavigate } from 'react-router-dom';
+
 
 const COLORS = {
   orange: '#ff8937',
@@ -136,9 +138,11 @@ const styles = {
   },
 };
 
-function Login({ onSuccess }) {
+function Login() {
+  const navigate = useNavigate();
   const handleLogin = () => {
-    if (onSuccess) onSuccess();
+    navigate('/home');
+    
   };
 
   return (

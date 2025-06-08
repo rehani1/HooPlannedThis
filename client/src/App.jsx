@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import Login from './pages/Login'; 
+import Login from './pages/login'; 
 import Home from './pages/Home';
 import Events from './pages/Events'; 
 import Committees from './pages/Committees';
@@ -13,7 +13,8 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      {/* <Route path="/login" element={<Login />} /> */}
+      <Route path="/login" element={isAuthenticated ? <Login /> : <Navigate to="/login" />} />
       <Route path="/home" element={isAuthenticated ? <Home /> : <Navigate to="/login" />} />
       <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/login" />} />
       <Route path="/committees" element={isAuthenticated ? <Committees /> : <Navigate to="/login" />} />
