@@ -145,6 +145,10 @@ function Login() {
     
   };
 
+  const handleRegister = () => {
+    navigate('/register');
+  };
+
   return (
     <div style={styles.page}>
       <div style={styles.container}>
@@ -167,7 +171,7 @@ function Login() {
             <input id="password" type="password" placeholder="Enter your password" style={styles.input} />
             <button onClick={handleLogin} type="button" style={styles.primaryBtn}>Log In</button>
             <div style={styles.or}>Or</div>
-            <button type="button" style={styles.secondaryBtn}>Request a New Account</button>
+            <button onClick={handleRegister} type="button" style={styles.secondaryBtn}>Request a New Account</button>
           </div>
         </div>
       </div>
