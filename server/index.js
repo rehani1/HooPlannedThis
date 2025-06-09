@@ -3,7 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import bodyParser from 'body-parser'
+
 import {
   getUserByUsername,
   createUser,
@@ -17,8 +17,19 @@ const PORT = process.env.PORT || 4000
 const JWT_SECRET = process.env.JWT_SECRET
 if (!JWT_SECRET) throw new Error('Missing JWT_SECRET')
 
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }))
-app.use(bodyParser.json())
+const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173']
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
+  : defaultOrigins
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true
+  })
+)
+
+app.use(express.json())
 
 app.post('/api/request-account', async (req, res) => {
   const { firstName, lastName, email, classId } = req.body
@@ -28,6 +39,9 @@ app.post('/api/request-account', async (req, res) => {
 
 app.post('/api/register', async (req, res) => {
   const { firstName, lastName, email, classId, username, password } = req.body
+  if (!firstName || !lastName || !email || !classId || !username || !password) {
+    return res.status(400).json({ message: 'Missing required fields' })
+  }
   const passwordHash = await bcrypt.hash(password, 10)
   const user = await createUser({
     firstName,
