@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import api from '../api'
 import { useNavigate } from 'react-router-dom'
+import '../components/RegisterAccount.css';
+import CalendarIcon from '../components/CalendarIcon';
+import '../components/Layout.css';
 
 export default function RegisterAccount() {
   const [formData, setFormData] = useState({
@@ -31,89 +34,120 @@ export default function RegisterAccount() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '40px auto', fontFamily: 'sans-serif' }}>
-      <h1>Register Account</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="username">Username:</label>
-          <input
-            id="username"
-            name="username"
-            type="text"
-            value={formData.username}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: 8, margin: '8px 0' }}
-          />
-        </div>
-        <div>
-          <label htmlFor="password">Password:</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: 8, margin: '8px 0' }}
-          />
-        </div>
-        <div>
-          <label htmlFor="firstName">First Name:</label>
-          <input
-            id="firstName"
-            name="firstName"
-            type="text"
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: 8, margin: '8px 0' }}
-          />
-        </div>
-        <div>
-          <label htmlFor="lastName">Last Name:</label>
-          <input
-            id="lastName"
-            name="lastName"
-            type="text"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: 8, margin: '8px 0' }}
-          />
-        </div>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: 8, margin: '8px 0' }}
-          />
-        </div>
-        <div>
-          <label htmlFor="classId">Class ID:</label>
-          <input
-            id="classId"
-            name="classId"
-            type="text"
-            value={formData.classId}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: 8, margin: '8px 0' }}
-          />
-        </div>
-        <button
-          type="submit"
-          style={{ width: '100%', padding: 10, margin: '12px 0', cursor: 'pointer' }}
-        >
-          Register
-        </button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-      </form>
+    
+    <div className="register-container">
+      <div className="register-card">
+        <h1>Register Account</h1>
+        <form onSubmit={handleSubmit}>
+          <label htmlFor="username">Username</label>
+          <input id="username" name="username" type="text" value={formData.username} onChange={handleChange} required />
+
+          <label htmlFor="password">Password</label>
+          <input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required />
+
+          <label htmlFor="firstName">First Name</label>
+          <input id="firstName" name="firstName" type="text" value={formData.firstName} onChange={handleChange} required />
+
+          <label htmlFor="lastName">Last Name</label>
+          <input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleChange} required />
+
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
+
+          <label htmlFor="classId">Class ID</label>
+          <input id="classId" name="classId" type="text" value={formData.classId} onChange={handleChange} required />
+
+          <button type="submit">Register</button>
+          {error && <p className="error-message">{error}</p>}
+        </form>
+      </div>
     </div>
-  )
+  );
+
+  // return (
+  //   <div style={{ maxWidth: 400, margin: '40px auto', fontFamily: 'sans-serif' }}>
+  //     <h1>Register Account</h1>
+  //     <form onSubmit={handleSubmit}>
+  //       <div>
+  //         <label htmlFor="username">Username:</label>
+  //         <input
+  //           id="username"
+  //           name="username"
+  //           type="text"
+  //           value={formData.username}
+  //           onChange={handleChange}
+  //           required
+  //           style={{ width: '100%', padding: 8, margin: '8px 0' }}
+  //         />
+  //       </div>
+  //       <div>
+  //         <label htmlFor="password">Password:</label>
+  //         <input
+  //           id="password"
+  //           name="password"
+  //           type="password"
+  //           value={formData.password}
+  //           onChange={handleChange}
+  //           required
+  //           style={{ width: '100%', padding: 8, margin: '8px 0' }}
+  //         />
+  //       </div>
+  //       <div>
+  //         <label htmlFor="firstName">First Name:</label>
+  //         <input
+  //           id="firstName"
+  //           name="firstName"
+  //           type="text"
+  //           value={formData.firstName}
+  //           onChange={handleChange}
+  //           required
+  //           style={{ width: '100%', padding: 8, margin: '8px 0' }}
+  //         />
+  //       </div>
+  //       <div>
+  //         <label htmlFor="lastName">Last Name:</label>
+  //         <input
+  //           id="lastName"
+  //           name="lastName"
+  //           type="text"
+  //           value={formData.lastName}
+  //           onChange={handleChange}
+  //           required
+  //           style={{ width: '100%', padding: 8, margin: '8px 0' }}
+  //         />
+  //       </div>
+  //       <div>
+  //         <label htmlFor="email">Email:</label>
+  //         <input
+  //           id="email"
+  //           name="email"
+  //           type="email"
+  //           value={formData.email}
+  //           onChange={handleChange}
+  //           required
+  //           style={{ width: '100%', padding: 8, margin: '8px 0' }}
+  //         />
+  //       </div>
+  //       <div>
+  //         <label htmlFor="classId">Class ID:</label>
+  //         <input
+  //           id="classId"
+  //           name="classId"
+  //           type="text"
+  //           value={formData.classId}
+  //           onChange={handleChange}
+  //           required
+  //           style={{ width: '100%', padding: 8, margin: '8px 0' }}
+  //         />
+  //       </div>
+  //       <button
+  //         type="submit"
+  //         style={{ width: '100%', padding: 10, margin: '12px 0', cursor: 'pointer' }}
+  //       >
+  //         Register
+  //       </button>
+  //       {error && <p style={{ color: 'red' }}>{error}</p>}
+  //     </form>
+  //   </div>
+  // )
 }
