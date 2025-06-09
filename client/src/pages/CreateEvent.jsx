@@ -13,6 +13,7 @@ const CreateEvent = () => {
     startTime: '',
     endTime: '',
     location: '',
+    budget:'',
     description: ''
   });
   
@@ -94,7 +95,7 @@ const CreateEvent = () => {
             <input
               type="time"
               name="startTime"
-              value={formData.date}
+              value={formData.startTime}
               onChange={handleChange}
               required
               style={{ width: '100%', marginBottom: '12px' }}
@@ -105,7 +106,7 @@ const CreateEvent = () => {
             <input
               type="time"
               name="endTime"
-              value={formData.date}
+              value={formData.endTime}
               onChange={handleChange}
               required
               style={{ width: '100%', marginBottom: '12px' }}
@@ -132,6 +133,19 @@ const CreateEvent = () => {
               readOnly
             />
           </label>
+          <label>
+            Budget ($):
+            <input
+                type="number"
+                name="budget"
+                value={formData.budget}
+                onChange={handleChange}
+                placeholder="$0.00"
+                step="0.01"
+                min="0"
+                style={{ width: '100%', marginBottom: '12px' }}
+            />
+            </label>
           <label>
             Description:
             <textarea
