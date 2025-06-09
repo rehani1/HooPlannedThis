@@ -132,7 +132,7 @@ const CreateEvent = () => {
               value={formData.location}
               onChange={handleChange}
               onClick={openLocationPopup}
-              placeholder="Click to browse locations 📍"
+              placeholder="Click to browse locations"
               required
               style={{ 
                 width: '100%', 
