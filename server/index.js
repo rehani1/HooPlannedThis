@@ -12,9 +12,9 @@ import {
 
 dotenv.config()
 
-const app = express()
-const PORT = process.env.PORT || 4000
-const JWT_SECRET = process.env.JWT_SECRET
+const app         = express()
+const PORT        = process.env.PORT || 4000
+const JWT_SECRET  = process.env.JWT_SECRET
 if (!JWT_SECRET) throw new Error('Missing JWT_SECRET')
 
 const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173']
@@ -24,11 +24,14 @@ const allowedOrigins = process.env.CORS_ORIGINS
 
 app.use(
   cors({
-    origin: '*',
-    credentials: true
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true)
+      return cb(null, allowedOrigins.includes(origin))
+    },
+    credentials: true,
+    optionsSuccessStatus: 204
   })
 )
-  
 
 app.use(express.json())
 
