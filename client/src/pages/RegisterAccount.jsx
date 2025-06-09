@@ -2,24 +2,24 @@ import React, { useState } from 'react'
 import api from '../api'
 import { useNavigate } from 'react-router-dom'
 
-const RegisterAccount = () => {
+export default function RegisterAccount() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     classId: '',
     username: '',
-    password: '',
+    password: ''
   })
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault()
     setError('')
     try {
@@ -108,12 +108,7 @@ const RegisterAccount = () => {
         </div>
         <button
           type="submit"
-          style={{
-            width: '100%',
-            padding: '10px',
-            margin: '12px 0',
-            cursor: 'pointer'
-          }}
+          style={{ width: '100%', padding: 10, margin: '12px 0', cursor: 'pointer' }}
         >
           Register
         </button>
@@ -122,5 +117,3 @@ const RegisterAccount = () => {
     </div>
   )
 }
-
-export default RegisterAccount
