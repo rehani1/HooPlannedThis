@@ -13,6 +13,7 @@ const CreateEvent = () => {
     startTime: '',
     endTime: '',
     location: '',
+    committee:'',
     budget:'',
     description: ''
   });
@@ -74,6 +75,17 @@ const CreateEvent = () => {
               type="text"
               name="title"
               value={formData.title}
+              onChange={handleChange}
+              required
+              style={{ width: '100%', marginBottom: '12px' }}
+            />
+          </label>
+          <label>
+            Committee:
+            <input
+              type="text"
+              name="committee"
+              value={formData.committee}
               onChange={handleChange}
               required
               style={{ width: '100%', marginBottom: '12px' }}
