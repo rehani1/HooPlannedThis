@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import ClassCouncil from './pages/ClassCouncil';
 import CreateEvent from './pages/CreateEvent';
 import RegisterAccount from './pages/RegisterAccount';
+import Advisors from './pages/Advisors';
 
 function App() {
   const isAuthenticated = true; 
@@ -23,7 +24,9 @@ function App() {
       <Route path="/committees" element={isAuthenticated ? <Committees /> : <Navigate to="/login" />} />
       <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
       <Route path="/classcouncil" element={isAuthenticated ? <ClassCouncil /> : <Navigate to="/login" />} />
+      <Route path="/advisors" element={isAuthenticated ? <Advisors /> : <Navigate to="/login" />} />
       <Route path="/events/createevent" element={isAuthenticated ? <CreateEvent /> : <Navigate to="/login" />} />
+      
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
  

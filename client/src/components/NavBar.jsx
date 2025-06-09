@@ -14,6 +14,7 @@ const NavBar = () => {
           <li><Link to="/classcouncil">Class Council</Link></li>
           <li><Link to="/committees">Committees</Link></li>
           <li><Link to="/events">Events</Link></li>
+          <li><Link to="/advisors">Advisors</Link></li>
 
           <li>Budget</li>
           <li>Volunteer Sign Ups</li>
