@@ -1,5 +1,6 @@
 // src/components/Layout.jsx
 import React from 'react';
+import { Link } from 'react-router-dom';
 import NavBar from './NavBar';
 import CalendarIcon from './CalendarIcon';
 import './Layout.css';
@@ -8,12 +9,14 @@ const Layout = ({ children }) => {
   return (
     <div className="layout-wrapper">
       <header className="top-header">
-        <div className="logo-with-icon">
-          <CalendarIcon />
-          <span>HooPlannedThis</span>
-        </div>
+        <Link to="/home" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div className="logo-with-icon">
+                <CalendarIcon />
+                <span>HooPlannedThis</span>
+            </div>
+        </Link>
         {}
-      </header>
+    </header>
 
       <div className="layout-container">
         <div className="NavBar">
