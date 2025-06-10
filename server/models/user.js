@@ -10,15 +10,22 @@ export async function getUserByUsername(username) {
 }
 
 export async function createUser({ firstName, lastName, email, classId, username, passwordHash }) {
-  const result = await pool.query(
-    `INSERT INTO users
-      (first_name, last_name, email, class_id, username, password_hash)
-    VALUES (?,?,?,?,?,?)`,
-    [firstName, lastName, email, classId, username, passwordHash]
-  )
-  return { id: result.insertId }
+  try {
+    const result = await pool.query(
+      `INSERT INTO users
+         (first_name, last_name, email, class_id, username, password_hash)
+       VALUES (?,?,?,?,?,?)`,
+      [firstName, lastName, email, classId, username, passwordHash]
+    );
+    return { id: result.insertId };
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      err.status = 409;            
+      err.message = 'Email or username already exists';
+    }
+    throw err;
+  }
 }
-
 export async function createAccountRequest({ firstName, lastName, email, classId }) {
   await pool.query(
     `INSERT INTO account_requests
