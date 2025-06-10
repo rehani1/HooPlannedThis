@@ -349,10 +349,12 @@ const CreateEvent = () => {
                 </button>
               </div>
               <div style={{ 
-                height: '200px',
-                borderRadius: '4px',
+                width: '300px',            
+                height: '300px',
+                borderRadius: '8px',
                 overflow: 'hidden',
-                position: 'relative'
+                position: 'relative',
+                margin: '0 auto',    
               }}>
                 
                 <Map
