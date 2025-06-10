@@ -42,21 +42,32 @@ app.post('/api/request-account', async (req, res) => {
 })
 
 app.post('/api/register', async (req, res) => {
-  const { firstName, lastName, email, classId, username, password } = req.body
+  try {
+  const { firstName, lastName, email, classId, username, password } = req.body;
+
   if (!firstName || !lastName || !email || !classId || !username || !password) {
-    return res.status(400).json({ message: 'Missing required fields' })
+      return res.status(400).json({ message: 'Missing required fields' });
   }
-  const passwordHash = await bcrypt.hash(password, 10)
+
+  const passwordHash = await bcrypt.hash(password, 10);
   const user = await createUser({
-    firstName,
-    lastName,
-    email,
-    classId,
-    username,
-    passwordHash
-  })
-  res.status(201).json({ message: 'User registered', userId: user.id })
-})
+      firstName,
+      lastName,
+      email,
+      classId,
+      username,
+      passwordHash
+  });
+
+  return res.status(201).json({ message: 'User registered', userId: user.id });
+  } catch (err) {
+  if (err.status === 409) {           // duplicate e-mail / username
+  return res.status(409).json({ message: err.message });
+    }
+    console.error(err);
+    res.sendStatus(500);
+  }
+});
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body
