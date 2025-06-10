@@ -20,6 +20,7 @@
     "react-icons": "^5.5.0",
     "react-map-gl": "^7.1.7",
     "react-router-dom": "^7.6.2",
+    "recharts": "^2.15.3",
     "sass": "^1.89.1"
   },
   "devDependencies": {
