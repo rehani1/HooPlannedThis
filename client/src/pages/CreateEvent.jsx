@@ -20,13 +20,26 @@ const CreateEvent = () => {
   
   const [showLocationPopup, setShowLocationPopup] = useState(false);
   const [showSupplyPopup, setShowSupplyPopup] = useState(false);
+  const [showVendorPopup, setShowVendorPopup] = useState(false);
   const [supplies, setSupplies] = useState([]);
   const [currentSupply, setCurrentSupply] = useState({
     name: '',
     quantity: '',
     unitCost: '',
     totalCost: '0.00',
-    notes: ''
+    notes: '',
+    link: '',
+    reusable: false,
+    return_needed: false,
+    vendor: null
+  });
+  const [currentVendor, setCurrentVendor] = useState({
+    company: '',
+    contact_name: '',
+    contact_address: '',
+    contact_email: '',
+    contact_phone: '',
+    notes: '',
   });
   const [editingSupplyIndex, setEditingSupplyIndex] = useState(null);
   
@@ -62,28 +75,10 @@ const CreateEvent = () => {
 
   const openLocationPopup = () => {
     setShowLocationPopup(true);
-    // If we have a selected location, populate the address form with it
-    if (selectedLocation) {
-      setAddress({
-        ...address,
-        latitude: selectedLocation.latitude,
-        longitude: selectedLocation.longitude
-      });
-    }
   };
 
   const closeLocationPopup = () => {
     setShowLocationPopup(false);
-    // Reset address state when closing
-    setAddress({
-      streetAndNumber: "",
-      place: "",
-      region: "",
-      postcode: "",
-      country: "",
-      latitude: "",
-      longitude: "",
-    });
   };
 
   const handleAddressSubmit = (event) => {
@@ -116,7 +111,11 @@ const CreateEvent = () => {
       quantity: '',
       unitCost: '',
       totalCost: '0.00',
-      notes: ''
+      notes: '',
+      link: '',
+      reusable: false,
+      return_needed: false,
+      vendor: null
     });
   };
 
@@ -128,14 +127,21 @@ const CreateEvent = () => {
       quantity: '',
       unitCost: '',
       totalCost: '0.00',
-      notes: ''
+      notes: '',
+      link: '',
+      reusable: false,
+      return_needed: false,
+      vendor: null
     });
   };
 
   const handleSupplyChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setCurrentSupply(prev => {
-      const updated = { ...prev, [name]: value };
+      const updated = { 
+        ...prev, 
+        [name]: type === 'checkbox' ? checked : value 
+      };
       
       // Auto-calculate total cost
       if (name === 'quantity' || name === 'unitCost') {
@@ -176,6 +182,52 @@ const CreateEvent = () => {
 
   const getTotalSuppliesCost = () => {
     return supplies.reduce((sum, supply) => sum + parseFloat(supply.totalCost || 0), 0).toFixed(2);
+  };
+
+  // Vendor management functions
+  const openVendorPopup = () => {
+    setShowVendorPopup(true);
+    if (currentSupply.vendor) {
+      setCurrentVendor(currentSupply.vendor);
+    } else {
+      setCurrentVendor({
+        company: '',
+        contact_name: '',
+        contact_address: '',
+        contact_email: '',
+        contact_phone: '',
+        notes:'',
+      });
+    }
+  };
+
+  const closeVendorPopup = () => {
+    setShowVendorPopup(false);
+    setCurrentVendor({
+      company: '',
+      contact_name: '',
+      contact_address: '',
+      contact_email: '',
+      contact_phone: '',
+      notes: '',
+    });
+  };
+
+  const handleVendorChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentVendor(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleVendorSubmit = (e) => {
+    e.preventDefault();
+    if (currentVendor.company) {
+      setCurrentSupply(prev => ({ ...prev, vendor: currentVendor }));
+      closeVendorPopup();
+    }
+  };
+
+  const removeVendor = () => {
+    setCurrentSupply(prev => ({ ...prev, vendor: null }));
   };
 
   return (
@@ -284,7 +336,6 @@ const CreateEvent = () => {
                     setFormData(prev => ({ ...prev, location: '' }));
                     setSelectedLocation(null);
                   }}
-                  
                   style={{
                     background: 'none',
                     border: 'none',
@@ -300,12 +351,14 @@ const CreateEvent = () => {
               <div style={{ 
                 height: '200px',
                 borderRadius: '4px',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                position: 'relative'
               }}>
+                
                 <Map
                   longitude={selectedLocation.longitude}
                   latitude={selectedLocation.latitude}
-                  updateCoordinates={() => {}} // Read-only map
+                  updateCoordinates={() => {}}
                 />
               </div>
             </div>
@@ -346,74 +399,124 @@ const CreateEvent = () => {
             </div>
             
             {supplies.length > 0 && (
-              <div style={{ 
-                border: '1px solid #e0e0e0', 
-                borderRadius: '4px', 
-                padding: '10px',
-                backgroundColor: '#f8f9fa'
-              }}>
-                {supplies.map((supply, index) => (
-                  <div key={index} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    padding: '8px',
-                    borderBottom: index < supplies.length - 1 ? '1px solid #e0e0e0' : 'none'
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <strong>{supply.name}</strong>
-                      <div style={{ fontSize: '14px', color: '#666' }}>
-                        Qty: {supply.quantity} × ${supply.unitCost} = ${supply.totalCost}
-                      </div>
-                      {supply.notes && (
-                        <div style={{ fontSize: '12px', color: '#888' }}>{supply.notes}</div>
-                      )}
-                    </div>
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => editSupply(index)}
-                        style={{
-                          backgroundColor: '#ffc107',
-                          color: 'white',
-                          padding: '4px 8px',
-                          border: 'none',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          marginRight: '4px'
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteSupply(index)}
-                        style={{
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          padding: '4px 8px',
-                          border: 'none',
-                          borderRadius: '4px',
-                          fontSize: '12px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <>
                 <div style={{ 
-                  marginTop: '10px', 
-                  paddingTop: '10px', 
-                  borderTop: '2px solid #007bff',
+                  border: '1px solid #e0e0e0', 
+                  borderRadius: '4px', 
+                  padding: '10px',
+                  backgroundColor: '#f8f9fa',
+                  maxHeight: '250px',
+                  overflowY: 'auto'
+                }}>
+                  {supplies.map((supply, index) => (
+                    <div key={index} style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '8px',
+                      borderBottom: index < supplies.length - 1 ? '1px solid #e0e0e0' : 'none'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <strong>{supply.name}</strong>
+                        <div style={{ fontSize: '14px', color: '#666' }}>
+                          Qty: {supply.quantity} × ${supply.unitCost} = ${supply.totalCost}
+                        </div>
+                        {supply.notes && (
+                          <div style={{ fontSize: '12px', color: '#888' }}>{supply.notes}</div>
+                        )}
+                        {supply.vendor && (
+                          <div style={{ fontSize: '12px', color: '#555', marginTop: '2px' }}>
+                            Vendor: {supply.vendor.company}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '12px', marginTop: '4px' }}>
+                          {supply.reusable && (
+                            <span style={{ 
+                              backgroundColor: '#28a745', 
+                              color: 'white', 
+                              padding: '2px 6px', 
+                              borderRadius: '3px',
+                              marginRight: '6px'
+                            }}>
+                              Reusable
+                            </span>
+                          )}
+                          {supply.return_needed && (
+                            <span style={{ 
+                              backgroundColor: '#ffc107', 
+                              color: '#333', 
+                              padding: '2px 6px', 
+                              borderRadius: '3px',
+                              marginRight: '6px'
+                            }}>
+                              Return Needed
+                            </span>
+                          )}
+                          {supply.link && (
+                            <a 
+                              href={supply.link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ 
+                                color: '#007bff',
+                                textDecoration: 'none',
+                                marginLeft: '4px'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              🔗 Link
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => editSupply(index)}
+                          style={{
+                            backgroundColor: '#ffc107',
+                            color: 'white',
+                            padding: '4px 8px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer',
+                            marginRight: '4px'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteSupply(index)}
+                          style={{
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            padding: '4px 8px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ 
+                  marginTop: '8px',
+                  padding: '10px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  borderRadius: '4px',
                   textAlign: 'right',
                   fontWeight: 'bold'
                 }}>
                   Total Supplies Cost: ${getTotalSuppliesCost()}
                 </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -631,7 +734,7 @@ const CreateEvent = () => {
                   />
                 </label>
                 
-                <label style={{ display: 'block', marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '12px' }}>
                   Notes (optional):
                   <textarea
                     name="notes"
@@ -642,6 +745,120 @@ const CreateEvent = () => {
                     style={{ width: '100%', marginTop: '4px' }}
                   />
                 </label>
+                
+                <label style={{ display: 'block', marginBottom: '12px' }}>
+                  Link (optional):
+                  <input
+                    type="url"
+                    name="link"
+                    value={currentSupply.link}
+                    onChange={handleSupplyChange}
+                    placeholder="https://example.com/product-link"
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label>
+                
+                {/* Vendor Section */}
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px' }}>Vendor (optional):</label>
+                  {currentSupply.vendor ? (
+                    <div style={{
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      padding: '10px',
+                      backgroundColor: '#f8f9fa',
+                      fontSize: '14px'
+                    }}>
+                      <strong>{currentSupply.vendor.company}</strong>
+                      <div style={{ color: '#666', marginTop: '4px' }}>
+                        Contact: {currentSupply.vendor.contact_name}
+                      </div>
+                      {currentSupply.vendor.contact_email && (
+                        <div style={{ color: '#666' }}>
+                          Email: {currentSupply.vendor.contact_email}
+                        </div>
+                      )}
+                      {currentSupply.vendor.notes && (
+                        <div style={{ color: '#666' }}>
+                          Notes: {currentSupply.vendor.notes}
+                        </div>
+                      )}
+                      <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={openVendorPopup}
+                          style={{
+                            backgroundColor: '#ffc107',
+                            color: 'white',
+                            padding: '4px 12px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={removeVendor}
+                          style={{
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            padding: '4px 12px',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={openVendorPopup}
+                      style={{
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        padding: '6px 12px',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        width: '100%'
+                      }}
+                    >
+                      + Add Vendor
+                    </button>
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      name="reusable"
+                      checked={currentSupply.reusable}
+                      onChange={handleSupplyChange}
+                      style={{ marginRight: '8px' }}
+                    />
+                    Reusable
+                  </label>
+                  
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      name="return_needed"
+                      checked={currentSupply.return_needed}
+                      onChange={handleSupplyChange}
+                      style={{ marginRight: '8px' }}
+                    />
+                    Return Needed
+                  </label>
+                </div>
                 
                 <div style={{ textAlign: 'center' }}>
                   <button
@@ -671,6 +888,167 @@ const CreateEvent = () => {
                     }}
                   >
                     {editingSupplyIndex !== null ? 'Update Supply' : 'Add Supply'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Vendor Popup */}
+        {showVendorPopup && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000
+          }}>
+            <div style={{
+              backgroundColor: 'white',
+              padding: '20px',
+              borderRadius: '8px',
+              width: '450px',
+              maxHeight: '80vh',
+              overflowY: 'auto'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '20px'
+              }}>
+                <h3>Vendor Information</h3>
+                <button
+                  onClick={closeVendorPopup}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '20px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              
+              <form onSubmit={handleVendorSubmit}>
+                <label style={{ display: 'block', marginBottom: '12px' }}>
+                  Company Name:
+                  <input
+                    type="text"
+                    name="company"
+                    value={currentVendor.company}
+                    onChange={handleVendorChange}
+                    required
+                    placeholder="Vendor company name"
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label>
+                
+                <label style={{ display: 'block', marginBottom: '12px' }}>
+                  Contact Name:
+                  <input
+                    type="text"
+                    name="contact_name"
+                    value={currentVendor.contact_name}
+                    onChange={handleVendorChange}
+                    placeholder="Contact person's name"
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label>
+                
+                <label style={{ display: 'block', marginBottom: '12px' }}>
+                  Contact Address:
+                  <input
+                    type="text"
+                    name="contact_address"
+                    value={currentVendor.contact_address}
+                    onChange={handleVendorChange}
+                    placeholder="Vendor address"
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label>
+                
+                <label style={{ display: 'block', marginBottom: '12px' }}>
+                  Contact Email:
+                  <input
+                    type="email"
+                    name="contact_email"
+                    value={currentVendor.contact_email}
+                    onChange={handleVendorChange}
+                    placeholder="vendor@example.com"
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label>
+                
+                <label style={{ display: 'block', marginBottom: '20px' }}>
+                  Contact Phone:
+                  <input
+                    type="tel"
+                    name="contact_phone"
+                    value={currentVendor.contact_phone}
+                    onChange={handleVendorChange}
+                    placeholder="(123) 456-7890"
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label>
+                {/* <label style={{ display: 'block', marginBottom: '20px' }}>
+                  Notes:
+                  <input
+                    type="description"
+                    name="notes"
+                    value={currentVendor.notes}
+                    onChange={handleVendorChange}
+                    placeholder="Any additional information"
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label> */}
+                <label style={{ display: 'block', marginBottom: '12px' }}>
+                  Notes (optional):
+                  <textarea
+                    name="notes"
+                    value={currentVendor.notes}
+                    onChange={handleVendorChange}
+                    rows={3}
+                    placeholder="Additional details about this vendor..."
+                    style={{ width: '100%', marginTop: '4px' }}
+                  />
+                </label>
+                
+                <div style={{ textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={closeVendorPopup}
+                    style={{
+                      backgroundColor: '#6c757d',
+                      color: 'white',
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      marginRight: '10px'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      backgroundColor: '#ff8937',
+                      color: 'white',
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Save Vendor
                   </button>
                 </div>
               </form>
