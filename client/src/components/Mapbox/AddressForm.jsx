@@ -71,9 +71,9 @@ export default function AddressForm({ address, onSubmit, setAddress }) {
       </div>
 
       <div className="buttons">
-        <button type="submit" className="confirm-button">
+        {/* <button type="submit" className="confirm-button">
           Confirm
-        </button>
+        </button> */}
         <button
           type="reset"
           className="reset-button"
@@ -89,7 +89,7 @@ export default function AddressForm({ address, onSubmit, setAddress }) {
             })
           }
         >
-          Reset
+          Reset Pin
         </button>
       </div>
     </form>
