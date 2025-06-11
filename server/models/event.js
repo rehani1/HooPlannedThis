@@ -1,11 +1,18 @@
-import pool from '../db.js';
+import pool from '../db.js'
+import { promisify } from 'util'
 
 export async function createEvent(data) {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
+  const conn = await pool.getConnection()
 
-    const [ev] = await conn.query(
+  const query = promisify(conn.query).bind(conn)
+  const begin = promisify(conn.beginTransaction).bind(conn)
+  const commit = promisify(conn.commit).bind(conn)
+  const rollback = promisify(conn.rollback).bind(conn)
+
+  try {
+    await begin()
+
+    const [evResult] = await query(
       `INSERT INTO events
          (title, committee, event_date, start_time, end_time,
           venue_name, venue_contact, venue_address,
@@ -25,13 +32,14 @@ export async function createEvent(data) {
         data.budget ?? 0,
         data.description ?? null
       ]
-    );
-    const eventId = ev.insertId;
+    )
+    const eventId = evResult.insertId
 
     for (const s of data.supplies ?? []) {
-      let vendorId = null;
+      let vendorId = null
+
       if (s.vendor) {
-        const [vr] = await conn.query(
+        const [vr] = await query(
           `INSERT INTO vendors
              (company, contact_name, contact_address,
               contact_email, contact_phone, notes)
@@ -44,11 +52,11 @@ export async function createEvent(data) {
             s.vendor.contact_phone,
             s.vendor.notes
           ]
-        );
-        vendorId = vr.insertId;
+        )
+        vendorId = vr.insertId
       }
 
-      await conn.query(
+      await query(
         `INSERT INTO event_supplies
            (event_id, name, quantity, unit_cost, total_cost,
             notes, link, reusable, return_needed, vendor_id)
@@ -65,15 +73,17 @@ export async function createEvent(data) {
           s.return_needed ? 1 : 0,
           vendorId
         ]
-      );
+      )
     }
 
-    await conn.commit();
-    return eventId;
-  } catch (e) {
-    await conn.rollback();
-    throw e;
+    await commit()
+    return eventId
+
+  } catch (err) {
+    await rollback()
+    throw err
+
   } finally {
-    conn.release();
+    conn.release()
   }
 }
