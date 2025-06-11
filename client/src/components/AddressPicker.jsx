@@ -83,7 +83,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1300, // make sure we’re above other modals
+    zIndex: 2002, // make sure we’re above other modals
   },
   modal: {
     backgroundColor: '#fff',
@@ -94,7 +94,7 @@ const styles = {
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    zIndex: 1301, // one above the overlay for good measure
+    zIndex: 2003, // one above the overlay for good measure
   },
   header: {
     display: 'flex',
