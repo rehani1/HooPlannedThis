@@ -2,12 +2,14 @@ import pool from '../db.js'
 import { promisify } from 'util'
 
 export async function createEvent(data) {
-  const conn = await pool.getConnection()
+  
+  const getConn = promisify(pool.getConnection).bind(pool)
+  const conn = await getConn()
 
-  const query = promisify(conn.query).bind(conn)
-  const begin = promisify(conn.beginTransaction).bind(conn)
-  const commit = promisify(conn.commit).bind(conn)
-  const rollback = promisify(conn.rollback).bind(conn)
+  const query     = promisify(conn.query).bind(conn)
+  const begin     = promisify(conn.beginTransaction).bind(conn)
+  const commit    = promisify(conn.commit).bind(conn)
+  const rollback  = promisify(conn.rollback).bind(conn)
 
   try {
     await begin()
