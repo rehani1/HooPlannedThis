@@ -10,7 +10,7 @@ export default async function getPlaces(query) {
             autocomplete: true,
             types: 'address,poi,place',
             limit: 5,
-            language: 'en',              // Optional: ensure English results
+            language: 'en',             
             proximity: [-78.507980, 38.033558],  // Charlottesville bias
             bbox: [-78.55, 37.95, -78.45, 38.1], // Tight bounding box for UVA
         },
