@@ -23,15 +23,26 @@
 .legend-list li{ display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:14px; color:#374151; }
 .legend-list li span{ width:14px; height:14px; border-radius:3px; display:inline-block; }
 
-/* allocation list */
+/* allocation list
 .bold      { font-weight:600; margin-bottom:12px; }
 .subtitle  { font-weight:500; margin:6px 0 6px; }
-.alloc-list{ list-style:disc; padding-left:20px; color:#374151; line-height:1.5; }
+.alloc-list{ list-style:none; padding-left:20px; color:#374151; line-height:1.5; } */
+/* ─ Allocation block ─────────────────────────────────────────────── */
+.alloc-total  { margin: 0 0 12px; font-weight: 500; }
+
+/* table */
+.alloc-table          { width: 100%; border-collapse: collapse; }
+.alloc-table td       { padding: 6px 8px; border-bottom: 1px solid #eee; }
+.alloc-name           { text-align: left;  color: #374151; }
+.alloc-amount         { text-align: right; font-weight: 600; }
+
+/* if you want a little breathing room below the table rows */
+.alloc-table tr:last-child td { border-bottom: none; }
 
 /* table */
 .table-wrapper{ overflow-x:auto; margin-top:8px; }
 table { width:100%; border-collapse:collapse; font-size:14px; }
-thead th{ text-align:left; padding:10px 8px; color:#ff8937; border-bottom:1px solid #e5e7eb; font-weight:600; }
+thead th{ text-align:center; padding:10px 8px; color:#ff8937; border-bottom:1px solid #e5e7eb; font-weight:600; }
 tbody td{ padding:10px 8px; color:#374151; border-bottom:1px solid #f0f2f6; }
 tbody tr:hover{ background:#f9fafb; }
 

@@ -102,14 +102,37 @@ export default function Budget() {
           </div>
 
           {/* Allocation card */}
-          <div className="card">
+          {/* <div className="card">
             <h2 className="card-title">Budget Allocation</h2>
             <p className="bold">Total Allocated Budget: $50,000</p>
             <p className="subtitle">By Committee:</p>
             <ul className="alloc-list">
               {ALLOC_LINES.map((l) => <li key={l}>{l}</li>)}
             </ul>
-          </div>
+          </div> */}
+          <div className="card">
+            <h2 className="card-title">Budget Allocation</h2>
+            <p className="alloc-total">Total Allocated Budget: <strong>$50,000</strong></p>
+
+             {/* allocation table */}
+            <table className="alloc-table">
+                <tbody>
+                {[
+                    { committee: 'Wellness Committee',                    amount: '$8,000' },
+                    { committee: 'Career Development Committee',          amount: '$7,000' },
+                    { committee: 'Reels Committee',                       amount: '$6,000' },
+                    { committee: 'Class Giving Committee',                amount: '$6,500' },
+                    { committee: 'Social Committee',                      amount: '$15,000'},
+                    { committee: 'Diversity, Equity & Inclusion Committee', amount: '$7,500'}
+                ].map(row => (
+                    <tr key={row.committee}>
+                    <td className="alloc-name">{row.committee}</td>
+                    <td className="alloc-amount">{row.amount}</td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
+            </div>
         </div>
 
         {/* RIGHT column */}
