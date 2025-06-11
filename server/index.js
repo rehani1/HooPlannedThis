@@ -85,25 +85,30 @@ app.post('/api/login', async (req, res) => {
 })
 
 app.get('/api/profile', (req, res) => {
-  const authHeader = req.headers.authorization
-  if (!authHeader) return res.status(401).end()
-  const token = authHeader.split(' ')[1]
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).end();
+  const token = authHeader.split(' ')[1];
   try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    res.json({ id: payload.sub, username: payload.username })
-  } catch {
-    res.status(403).json({ message: 'Invalid or expired token' })
+    const payload = jwt.verify(token, JWT_SECRET);
+    res.json({ id: payload.sub, username: payload.username });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Session expired' });
+    }
+    console.error('Profile error:', err);
+    res.status(403).json({ message: 'Invalid token' });
   }
-})
+});
+
 
 app.post('/api/events', async (req, res) => {
   try {
-    const auth = req.headers.authorization?.split(' ')[1];
-    if (!auth) return res.sendStatus(401);
-    jwt.verify(auth, JWT_SECRET);
-    const eventId = await createEvent(req.body);   
-    res.status(201).json({ id: eventId });
+    const id = await createEvent(req.body);
+    return res.status(201).json({ id });
   } catch (err) {
+    if (err.code === 'ER_BAD_NULL_ERROR') {
+      return res.status(400).json({ message: 'Missing required event fields' });
+    }
     console.error(err);
     res.sendStatus(500);
   }
