@@ -5,6 +5,7 @@ import CalendarComponent from '../components/CalendarComponent';
 import AddressForm from '../components/Mapbox/AddressForm';
 import Map from '../components/Mapbox/Map';
 import "mapbox-gl/dist/mapbox-gl.css";
+import api from '../api'; 
 
 const CreateEvent = () => {
   const [formData, setFormData] = useState({
@@ -59,7 +60,7 @@ const CreateEvent = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const eventData = {
       ...formData,
@@ -69,8 +70,13 @@ const CreateEvent = () => {
         longitude: selectedLocation.longitude
       } : null
     };
-    console.log('Submitted Event:', eventData);
-    // TODO: send eventData to your backend using fetch or axios
+    try {
+      await api.post('/api/events', eventData);
+      alert('Event created!');
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to create event');
+    }
   };
 
   const openLocationPopup = () => {

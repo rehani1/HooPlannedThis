@@ -1,3 +1,4 @@
+import { createEvent } from './models/event.js';
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
@@ -94,5 +95,18 @@ app.get('/api/profile', (req, res) => {
     res.status(403).json({ message: 'Invalid or expired token' })
   }
 })
+
+app.post('/api/events', async (req, res) => {
+  try {
+    const auth = req.headers.authorization?.split(' ')[1];
+    if (!auth) return res.sendStatus(401);
+    jwt.verify(auth, JWT_SECRET);
+    const eventId = await createEvent(req.body);   
+    res.status(201).json({ id: eventId });
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+});
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
