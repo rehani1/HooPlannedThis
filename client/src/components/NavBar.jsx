@@ -37,7 +37,7 @@ const NavBar = () => {
         <h4 className="section-title">Settings</h4>
         <ul className="nav-list">
           <li><FaUser className="icon" /> <Link to="/profile">Profile</Link></li>
-          <li><FaCog className="icon" /> Settings</li>
+          <li><FaCog className="icon" /><Link to="/admincreatecouncil">Admin</Link></li>
           <li>
             <button onClick={handleLogout} className="link-button">
               <FaSignOutAlt className="icon" /> Log Out

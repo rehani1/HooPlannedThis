@@ -13,6 +13,7 @@ import RegisterAccount from './pages/RegisterAccount';
 import Advisors        from './pages/Advisors';
 import Budget          from './pages/Budget';
 import VolunteerSignUp from './pages/VolunteerSignUp';
+import AdminCreateCouncil from './pages/AdminCreateCouncil';
 
 function App() {
   const [isAuthenticated, setIsAuth] = useState(
@@ -41,6 +42,7 @@ function App() {
         <Route path="/advisors"           element={isAuthenticated ? <Advisors />        : <Navigate to="/login" />} />
         <Route path="/budget"             element={isAuthenticated ? <Budget />          : <Navigate to="/login" />} />
         <Route path="/volunteersignup"    element={isAuthenticated ? <VolunteerSignUp /> : <Navigate to="/login" />} />
+        <Route path="/admincreatecouncil"    element={isAuthenticated ? <AdminCreateCouncil /> : <Navigate to="/login" />} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/login" />} />
