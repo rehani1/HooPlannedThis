@@ -1,84 +1,215 @@
 import React from 'react';
 import Layout from '../components/Layout';
+// import StaticMap from '../components/Mapbox/StaticMap';    
+import firstToThirdAdvisorpfp from '../components/avatars/firstToThirdAdvisorpfp.jpeg';
+import trusteesAdvisorpfp     from '../components/avatars/trusteesAdvisorpfp.jpeg';
 
 const Advisors = () => {
-  const earlyAdvisor = [
-    {
-      id: 1,
-      firstName: 'Alice',
-      lastName: 'Smith',
-      building: 'Gilmer Hall',
-      address: '485 McCormick Rd',
-      email: 'alice.smith@virginia.edu',
-      phone: '(434) 924-1001',
-    }
-  ];
+  /* ---------- data ---------- */
+  const earlyAdvisor = [{
+    id: 1,
+    firstName: 'Alice',
+    lastName:  'Smith',
+    building:  'Gilmer Hall',
+    address:   '485 McCormick Rd, Charlottesville, VA 22903',
+    email:     'alice.smith@virginia.edu',
+    phone:     '(434) 924‑1001',
+    photoUrl:  firstToThirdAdvisorpfp
+  }];
 
-  const fourthYearAdvisor = [
-    {
-      id: 2,
-      firstName: 'Carmen',
-      lastName: 'Nguyen',
-      building: 'Rice Hall',
-      address: '85 Engineer’s Way',
-      email: 'carmen.nguyen@virginia.edu',
-      phone: '(434) 924-1004',
-    }
-  ];
+  const fourthYearAdvisor = [{
+    id: 2,
+    firstName: 'Carmen',
+    lastName:  'Nguyen',
+    building:  'Rice Hall',
+    address:   '85 Engineers Way, Charlottesville, VA 22903',
+    email:     'carmen.nguyen@virginia.edu',
+    phone:     '(434) 924‑1004',
+    photoUrl:  trusteesAdvisorpfp
+  }];
 
-  const renderVerticalTable = (advisor) => (
-    <table style={tableStyle}>
-      <tbody>
-        <tr><th style={labelStyle}>First Name</th><td style={valueStyle}>{advisor.firstName}</td></tr>
-        <tr><th style={labelStyle}>Last Name</th><td style={valueStyle}>{advisor.lastName}</td></tr>
-        <tr><th style={labelStyle}>Building</th><td style={valueStyle}>{advisor.building}</td></tr>
-        <tr><th style={labelStyle}>Address</th><td style={valueStyle}>{advisor.address}</td></tr>
-        <tr><th style={labelStyle}>Email</th><td style={valueStyle}><a href={`mailto:${advisor.email}`}>{advisor.email}</a></td></tr>
-        <tr><th style={labelStyle}>Phone</th><td style={valueStyle}>{advisor.phone}</td></tr>
-      </tbody>
-    </table>
-  );
+  /* ---------- inline styles (unchanged except avatar) ---------- */
+  const cardWrapper = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 20,
+    marginBottom: '2em'
+  };
+  const mapWrapper = {
+    width: 240,
+    height: 180,
+    borderRadius: 8,
+    overflow: 'hidden',
+    border: '3px solid #eee',
+    flexShrink: 0
+  };
+
+  const avatarStyle = {
+    width: 150,
+    height: 188,
+    borderRadius: 8,
+    objectFit: 'cover',
+    border: '3px solid #eee',
+    flexShrink: 0
+  };
 
   const tableStyle = {
     width: '100%',
-    maxWidth: '600px',
-    margin: '0 auto 2em',
-    marginBottom: '2em',
-    backgroundColor: '#fff',
+    maxWidth: 600,
+    borderCollapse: 'collapse',
+    background: '#fff',
     border: '1px solid #ddd',
-    borderRadius: '8px',
-    overflow: 'hidden',
-    borderCollapse: 'collapse'
+    borderRadius: 8,
+    overflow: 'hidden'
   };
 
-  const labelStyle = {
-    backgroundColor: '#f7f7f7',
-    padding: '12px',
-    textAlign: 'left',
-    fontWeight: '600',
-    width: '180px',
-    borderBottom: '1px solid #eee'
-  };
+  const labelStyle = { background: '#f7f7f7', fontWeight: 600, width: 180, padding: 12,
+                       textAlign: 'left', borderBottom: '1px solid #eee' };
+  const valueStyle = { padding: 12, borderBottom: '1px solid #eee' };
 
-  const valueStyle = {
-    padding: '12px',
-    borderBottom: '1px solid #eee'
-  };
+  /* ---------- card renderer ---------- */
+  const renderAdvisorCard = (adv) => (
+    <div style={cardWrapper}>
+      {/* left column: avatar + mini‑map stacked */}
+      <div style={{ display:'flex', flexDirection:'column', gap:12, alignItems:'center' }}>
+        {adv.photoUrl && <img src={adv.photoUrl} alt={`${adv.firstName} ${adv.lastName}`} style={avatarStyle} />}
+        {/* <StaticMap address={adv.address} width={150} height={110} />    */}
+      </div>
 
+      {/* right column: table */}
+      <table style={tableStyle}>
+        <tbody>
+          <tr><th style={labelStyle}>First Name</th><td style={valueStyle}>{adv.firstName}</td></tr>
+          <tr><th style={labelStyle}>Last Name</th> <td style={valueStyle}>{adv.lastName}</td></tr>
+          <tr><th style={labelStyle}>Building</th>  <td style={valueStyle}>{adv.building}</td></tr>
+          <tr><th style={labelStyle}>Address</th>   <td style={valueStyle}>{adv.address}</td></tr>
+          <tr><th style={labelStyle}>Email</th>     <td style={valueStyle}><a href={`mailto:${adv.email}`}>{adv.email}</a></td></tr>
+          <tr><th style={labelStyle}>Phone</th>     <td style={valueStyle}>{adv.phone}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  );
+
+  /* ---------- page ---------- */
   return (
     <Layout>
-      <div style={{ padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{ marginBottom: '24px' }}>Advisors</h1>
+      <div style={{ padding: 40, maxWidth: 900, margin: '0 auto' }}>
+        <h1 style={{ marginBottom: 24 }}>Advisors</h1>
 
-        <h2 style={{ marginBottom: '12px' }}>Advisor for 1st – 3rd Years</h2>
-        {earlyAdvisor.length > 0 ? renderVerticalTable(earlyAdvisor[0]) : <p>No advisor listed.</p>}
+        <h2 style={{ marginBottom: 12 }}>Advisor for 1st – 3rd Years</h2>
+        {earlyAdvisor.length ? renderAdvisorCard(earlyAdvisor[0]) : <p>No advisor listed.</p>}
 
-        <h2 style={{ marginBottom: '12px' }}>Advisor for 4th Year Trustees</h2>
-        {fourthYearAdvisor.length > 0 ? renderVerticalTable(fourthYearAdvisor[0]) : <p>No advisor listed.</p>}
+        <h2 style={{ marginBottom: 12 }}>Advisor for 4th Year Trustees</h2>
+        {fourthYearAdvisor.length ? renderAdvisorCard(fourthYearAdvisor[0]) : <p>No advisor listed.</p>}
       </div>
     </Layout>
   );
 };
 
 export default Advisors;
+
+
+
+// import React from 'react';
+// import Layout from '../components/Layout';
+// import firstToThirdAdvisorpfp from '../components/avatars/firstToThirdAdvisorpfp.jpeg';
+// import trusteesAdvisorpfp from '../components/avatars/trusteesAdvisorpfp.jpeg';
+
+// const Advisors = () => {
+  
+//   const earlyAdvisor = [{
+//     id: 1,
+//     firstName: 'Alice',
+//     lastName:  'Smith',
+//     building:  'Gilmer Hall',
+//     address:   '485 McCormick Rd',
+//     email:     'alice.smith@virginia.edu',
+//     phone:     '(434) 924‑1001',
+//     photoUrl:  firstToThirdAdvisorpfp        
+//   }];
+
+//   const fourthYearAdvisor = [{
+//     id: 2,
+//     firstName: 'Carmen',
+//     lastName:  'Nguyen',
+//     building:  'Rice Hall',
+//     address:   '85 Engineer’s Way',
+//     email:     'carmen.nguyen@virginia.edu',
+//     phone:     '(434) 924‑1004',
+//     photoUrl:  trusteesAdvisorpfp                           
+//   }];
+
+  
+
+// const cardWrapper = {
+//     display: 'flex',
+//     alignItems: 'center',      
+//     gap: '20px',
+//     marginBottom: '2em'
+//   };
+  
+
+// const avatarStyle = {
+//     width: 150,
+//     height: 188,       
+//     borderRadius: 8,    
+//     objectFit: 'cover',
+//     border: '3px solid #eee',
+//     flexShrink: 0
+//   };
+  
+//   const tableStyle = {
+//     width: '100%', maxWidth: 600, borderCollapse: 'collapse',
+//     background: '#fff', border: '1px solid #ddd', borderRadius: 8, overflow: 'hidden'
+//   };
+//   const labelStyle = {
+//     background: '#f7f7f7', fontWeight: 600, width: 180, padding: 12,
+//     textAlign: 'left', borderBottom: '1px solid #eee'
+//   };
+//   const valueStyle = { padding: 12, borderBottom: '1px solid #eee' };
+
+  
+//   const renderAdvisorCard = (adv) => (
+//     <div style={cardWrapper}>
+//       {adv.photoUrl && (
+//         <img
+//           src={adv.photoUrl}
+//           alt={`${adv.firstName} ${adv.lastName}`}
+//           style={avatarStyle}
+//         />
+//       )}
+
+//       <table style={tableStyle}>
+//         <tbody>
+//           <tr><th style={labelStyle}>First Name</th><td style={valueStyle}>{adv.firstName}</td></tr>
+//           <tr><th style={labelStyle}>Last Name</th> <td style={valueStyle}>{adv.lastName}</td></tr>
+//           <tr><th style={labelStyle}>Building</th>  <td style={valueStyle}>{adv.building}</td></tr>
+//           <tr><th style={labelStyle}>Address</th>   <td style={valueStyle}>{adv.address}</td></tr>
+//           <tr><th style={labelStyle}>Email</th>     <td style={valueStyle}>
+//               <a href={`mailto:${adv.email}`}>{adv.email}</a>
+//           </td></tr>
+//           <tr><th style={labelStyle}>Phone</th>     <td style={valueStyle}>{adv.phone}</td></tr>
+//         </tbody>
+//       </table>
+//     </div>
+//   );
+
+
+//   return (
+//     <Layout>
+//       <div style={{ padding: 40, maxWidth: 900, margin: '0 auto' }}>
+//         <h1 style={{ marginBottom: 24 }}>Advisors</h1>
+
+//         <h2 style={{ marginBottom: 12 }}>Advisor for 1st – 3rd Years</h2>
+//         {earlyAdvisor.length ? renderAdvisorCard(earlyAdvisor[0]) : <p>No advisor listed.</p>}
+
+//         <h2 style={{ marginBottom: 12 }}>Advisor for 4th Year Trustees</h2>
+//         {fourthYearAdvisor.length ? renderAdvisorCard(fourthYearAdvisor[0]) : <p>No advisor listed.</p>}
+//       </div>
+//     </Layout>
+//   );
+// };
+
+// export default Advisors;
+
 
