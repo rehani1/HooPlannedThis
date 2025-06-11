@@ -315,7 +315,7 @@ const CreateEvent = () => {
             />
           </label>
           <label>
-            Location:
+            Venue Address:
             <input
               type="text"
               name="location"
