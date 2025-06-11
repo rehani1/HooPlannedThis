@@ -13,6 +13,8 @@ const CreateEvent = () => {
     date: '',
     startTime: '',
     endTime: '',
+    venueName: '',
+    venueContact: '',
     location: '',
     committee:'',
     budget:'',
@@ -297,7 +299,29 @@ const CreateEvent = () => {
             />
           </label>
           <label>
-            Location:
+            Venue Name:
+            <input
+              type="text"
+              name="venueName"
+              value={formData.venueName}
+              onChange={handleChange}
+              required
+              style={{ width: '100%', marginBottom: '12px' }}
+            />
+          </label>
+          <label>
+            Venue Contact:
+            <input
+              type="text"
+              name="venueContact"
+              value={formData.venueContact}
+              onChange={handleChange}
+              required
+              style={{ width: '100%', marginBottom: '12px' }}
+            />
+          </label>
+          <label>
+            Venue Address:
             <input
               type="text"
               name="location"
