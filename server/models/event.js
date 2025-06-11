@@ -2,46 +2,33 @@ import pool from '../db.js'
 import { promisify } from 'util'
 
 export async function createEvent(data) {
-  
-  const getConn = promisify(pool.getConnection).bind(pool)
-  const conn = await getConn()
-
-  const query     = promisify(conn.query).bind(conn)
-  const begin     = promisify(conn.beginTransaction).bind(conn)
-  const commit    = promisify(conn.commit).bind(conn)
-  const rollback  = promisify(conn.rollback).bind(conn)
+  const conn  = await pool.getConnection()
+  const query = promisify(conn.query).bind(conn)
 
   try {
-    await begin()
+    await conn.beginTransaction()
 
-    const [evResult] = await query(
+    const result = await query(
       `INSERT INTO events
          (title, committee, event_date, start_time, end_time,
           venue_name, venue_contact, venue_address,
           latitude, longitude, budget, description)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
-        data.title,
-        data.committee,
-        data.date,
-        data.startTime,
-        data.endTime,
-        data.venueName,
-        data.venueContact,
-        data.location,
+        data.title, data.committee, data.date,
+        data.startTime, data.endTime,
+        data.venueName, data.venueContact, data.location,
         data.locationCoordinates?.latitude ?? null,
         data.locationCoordinates?.longitude ?? null,
-        data.budget ?? 0,
-        data.description ?? null
+        data.budget ?? 0, data.description ?? null
       ]
     )
-    const eventId = evResult.insertId
+    const eventId = result.insertId
 
     for (const s of data.supplies ?? []) {
       let vendorId = null
-
       if (s.vendor) {
-        const [vr] = await query(
+        const vr = await query(
           `INSERT INTO vendors
              (company, contact_name, contact_address,
               contact_email, contact_phone, notes)
@@ -78,13 +65,12 @@ export async function createEvent(data) {
       )
     }
 
-    await commit()
+    await conn.commit()
     return eventId
 
   } catch (err) {
-    await rollback()
+    await conn.rollback()
     throw err
-
   } finally {
     conn.release()
   }
