@@ -1,0 +1,26 @@
+/* .vol-loading{ padding:60px 24px; font:16px/1.4 "Montserrat",sans-serif; }
+
+.vol-title  { font: 700 32px/1.2 "Montserrat",sans-serif; margin:24px 0; }
+
+.slot-grid  { display:grid; gap:24px;
+              grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); }
+
+.slot-card  { background:#fff; border:1px solid #ddd; border-radius:10px;
+              padding:16px; display:flex; flex-direction:column; align-items:center; }
+
+.slot-time  { font-weight:600; margin-bottom:6px; }
+
+.slot-names { list-style:none; padding:0; margin:6px 0 12px;
+              display:flex; flex-direction:column; gap:4px;
+              min-height: calc(1.2em * 3); }
+
+.slot-names li       { font:14px/1.2 "Montserrat",sans-serif; }
+.slot-names li.me    { color:#003366; font-weight:600; }
+.slot-names li.empty { color:#bbb; }
+
+.btn-primary  { background:#003366; color:#fff; border:none; padding:6px 18px;
+                border-radius:6px; cursor:pointer; font-family:"Montserrat",sans-serif; }
+.btn-disabled { background:#ccc; color:#666; border:none; padding:6px 18px;
+                border-radius:6px; cursor:not-allowed; }
+.btn-cancel   { background:#dc3545; color:#fff; border:none; padding:6px 18px;
+                border-radius:6px; cursor:pointer; } */
