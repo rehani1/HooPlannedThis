@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import CalendarIcon from '../components/CalendarIcon'; 
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
 
 
 const COLORS = {
@@ -138,11 +139,20 @@ const styles = {
   },
 };
 
-function Login() {
+export default function Login() {
   const navigate = useNavigate();
-  const handleLogin = () => {
-    navigate('/home');
-    
+  const [creds, setCreds] = useState({ username: '', password: '' });
+  const [error, setError] = useState('');
+  const handleLogin = async () => {
+    setError('');
+    try {
+      const { data } = await api.post('/api/login', creds);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      navigate('/home');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+    }
   };
 
   const handleRegister = () => {
@@ -166,9 +176,9 @@ function Login() {
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Login</h2>
             <label htmlFor="username" style={styles.label}>Username</label>
-            <input id="username" type="text" placeholder="Enter your username" style={styles.input} />
+            <input id="username" name="username" value={creds.username} onChange={e => setCreds({ ...creds, username: e.target.value })} placeholder="Enter your username" style={styles.input}/>
             <label htmlFor="password" style={styles.label}>Password</label>
-            <input id="password" type="password" placeholder="Enter your password" style={styles.input} />
+            <input id="password" name="password" type="password" value={creds.password} onChange={e => setCreds({ ...creds, password: e.target.value })} placeholder="Enter your password" style={styles.input}/>
             <button onClick={handleLogin} type="button" style={styles.primaryBtn}>Log In</button>
             <div style={styles.or}>Or</div>
             <button onClick={handleRegister} type="button" style={styles.secondaryBtn}>Request a New Account</button>
@@ -179,7 +189,6 @@ function Login() {
   );
 }
 
-export default Login;
 
 
 
