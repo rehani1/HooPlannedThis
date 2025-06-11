@@ -65,4 +65,12 @@
     color: #ff8937; /* orange on hover */
   }
   
+  .link-button {
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    padding: 0;
+    cursor: pointer;
+  }
   

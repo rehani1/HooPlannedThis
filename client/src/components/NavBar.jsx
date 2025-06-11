@@ -1,17 +1,23 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useContext } from 'react'; 
+import { Link, useNavigate } from 'react-router-dom';
 import './NavBar.css';
 import { FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { AuthContext } from '../AuthContext';
+
 
 const NavBar = () => {
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
+  const { setIsAuth } = useContext(AuthContext); 
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login', { replace: true })
+    setIsAuth(false);                        
+    navigate('/login', { replace: true });    
+
   };
+
   return (
     <div className="navbar">
       <div className="nav-section">
@@ -32,7 +38,11 @@ const NavBar = () => {
         <ul className="nav-list">
           <li><FaUser className="icon" /> <Link to="/profile">Profile</Link></li>
           <li><FaCog className="icon" /> Settings</li>
-          <li><FaSignOutAlt className="icon" /><Link to="/login">Log Out</Link></li>
+          <li>
+            <button onClick={handleLogout} className="link-button">
+              <FaSignOutAlt className="icon" /> Log Out
+            </button>
+          </li>
         </ul>
       </div>
     </div>

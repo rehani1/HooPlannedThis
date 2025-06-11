@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import CalendarIcon from '../components/CalendarIcon'; 
 import { useNavigate } from 'react-router-dom';
+import { useContext } from 'react';
+import { AuthContext } from '../AuthContext';
 import api from '../api';
 
 
@@ -141,6 +143,7 @@ const styles = {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setIsAuth } = useContext(AuthContext)
   const [creds, setCreds] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const handleLogin = async () => {
@@ -149,7 +152,8 @@ export default function Login() {
       const { data } = await api.post('/api/login', creds);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/home');
+      setIsAuth(true); 
+      navigate('/home', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }

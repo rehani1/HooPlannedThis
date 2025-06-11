@@ -15,10 +15,14 @@ import Budget          from './pages/Budget';
 import VolunteerSignUp from './pages/VolunteerSignUp';
 
 function App() {
-  const [isAuthenticated, setIsAuth] = useState(false);
+  const [isAuthenticated, setIsAuth] = useState(
+    Boolean(localStorage.getItem('token'))
+  );
 
   useEffect(() => {
-    setIsAuth(Boolean(localStorage.getItem('token')));
+    const cb = () => setIsAuth(Boolean(localStorage.getItem('token')));
+    window.addEventListener('storage', cb);
+    return () => window.removeEventListener('storage', cb);
   }, []);
 
   return (
