@@ -5,6 +5,13 @@ import './NavBar.css';
 import { FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
 
 const NavBar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login', { replace: true })
+  };
   return (
     <div className="navbar">
       <div className="nav-section">
