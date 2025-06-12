@@ -46,10 +46,10 @@ export default function RegisterAccount() {
           {[
             { id: 'firstName', label: 'First Name', type: 'text' },
             { id: 'lastName', label: 'Last Name', type: 'text' },
-            { id: 'username', label: 'Username', type: 'text' },
+            { id: 'username', label: 'Computing ID', type: 'text' },
             { id: 'password', label: 'Password', type: 'password' },
-            { id: 'email', label: 'Email', type: 'email' },
-            { id: 'classId', label: 'Class ID', type: 'text' },
+            { id: 'email', label: 'UVA Email', type: 'email' },
+            { id: 'classId', label: 'Class Graduation Year', type: 'text' },
           ].map(({ id, label, type }) => (
             <div className="form-group" key={id}>
               <label htmlFor={id}>{label}</label>
