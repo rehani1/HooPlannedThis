@@ -190,6 +190,24 @@ export default function AdminCreateCouncil() {
       {renderCouncilTable('Third-Year Council',   councils.third)}
       {renderCouncilTable('Trustees',             councils.trustees)}
 
+      <div style={{ marginTop: 48, textAlign: 'center' }}>
+        <h2 style={{ ...s.tableTitle, marginBottom: 16 }}>Admin Add Advisor</h2>
+        <button
+          style={{ 
+            padding: '10px 20px',
+            backgroundColor: '#4b77d1',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontSize: 16
+          }}
+          onClick={() => setShowAdvisorModal(true)}
+        >
+          + Add New Advisor
+        </button>
+      </div>
+
       <Modal open={showCouncilForm} onClose={()=>setShowCouncilForm(false)}>
         <h2>New Council</h2>
 
