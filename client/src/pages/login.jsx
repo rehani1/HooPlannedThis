@@ -40,26 +40,27 @@ const styles = {
   },
   container: {
     display: 'flex',
-    flexWrap: 'wrap',
+    flexDirection: 'row',
     width: '100%',
-    maxWidth: 960,
+    maxWidth: 1280, 
     margin: '0 auto',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: '0 40px',
-    gap: 48,
+    gap: 96,
   },
   left: {
-    flex: '0 0 auto',
-    maxWidth: 520,
-    paddingRight: 40,
+    flex: '0 0 520px',
+    textAlign: 'left',
   },
   right: {
-    flex: '0 0 auto',
-    maxWidth: 480,
+    flex: '0 0 600px', 
+  },
+  brandSection: {
+    textAlign: 'center',
+    width: '100%',
   },
   brandTitle: {
-    fontSize: 42,
+    fontSize: 48,
     fontWeight: 800,
     color: COLORS.navy,
     margin: 0,
@@ -67,26 +68,26 @@ const styles = {
     alignItems: 'center',
   },
   tagline: {
-    fontSize: 16,
-    fontWeight: 400,
+    fontSize: 18,
     color: COLORS.navy,
     lineHeight: 1.6,
-    margin: '16px 0 0 0',
-    textAlign: 'left',
+    marginTop: 18,
   },
   card: {
     background: COLORS.white,
-    borderRadius: 20,
-    padding: '40px 48px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+    borderRadius: 16,
+    padding: 48, 
+    boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
     border: `1px solid ${COLORS.gray300}`,
+    width: '100%',
+    boxSizing: 'border-box',
   },
   cardTitle: {
     fontSize: 28,
     fontWeight: 700,
     color: COLORS.navy,
-    margin: '0 0 36px 0',
-    textAlign: 'left',
+    margin: '0 0 28px 0',
+    textAlign: 'center', 
   },
   label: {
     fontSize: 18,
@@ -98,16 +99,18 @@ const styles = {
   },
   input: {
     width: '100%',
+    maxWidth: 480,
     padding: '14px 20px',
     borderRadius: 9999,
     border: `1px solid ${COLORS.gray300}`,
     fontSize: 16,
     outline: 'none',
-    marginBottom: 20,
-    marginTop: 6,
+
+    margin: '6px 0 20px 0',
   },
   primaryBtn: {
     width: '100%',
+    maxWidth: 480,
     padding: '14px 0',
     borderRadius: 9999,
     background: COLORS.navy,
@@ -121,12 +124,14 @@ const styles = {
   },
   secondaryBtn: {
     width: '100%',
+    maxWidth: 480,
     padding: '14px 0',
     borderRadius: 9999,
     background: COLORS.white,
     color: COLORS.navy,
     fontSize: 16,
     fontWeight: 500,
+    fontFamily: '"Montserrat", sans-serif',
     textTransform: 'none',
     border: `1px solid ${COLORS.navy}`,
     cursor: 'pointer',
@@ -136,36 +141,45 @@ const styles = {
   or: {
     textAlign: 'center',
     margin: '24px 0 4px',
-    fontWeight: 600,
-    color: COLORS.gray500,
+    fontWeight: 400,
+    color: COLORS.navy,
   },
 };
 
+if (window.matchMedia('(max-width: 900px)').matches) {
+  styles.container.flexDirection = 'column';
+  styles.container.gap = 40;
+  styles.left.textAlign = 'center';
+  styles.right.flex = '1 1 auto';
+  styles.input.maxWidth = '100%';
+  styles.primaryBtn.maxWidth = '100%';
+  styles.secondaryBtn.maxWidth = '100%';
+}
+
 export default function Login() {
   const navigate = useNavigate();
-  const { setIsAuth } = useContext(AuthContext)
+  const { setIsAuth } = useContext(AuthContext);
+
   const [creds, setCreds] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+
   const handleLogin = async () => {
     setError('');
     try {
       const { data } = await api.post('/api/login', creds);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      setIsAuth(true); 
+      setIsAuth(true);
       navigate('/home', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }
   };
 
-  const handleRegister = () => {
-    navigate('/register');
-  };
-
   return (
     <div style={styles.page}>
       <div style={styles.container}>
+        {/* brand / welcome */}
         <div style={styles.left}>
           <h1 style={styles.brandTitle}>
             <CalendarIcon style={styles.icon} />
@@ -176,23 +190,51 @@ export default function Login() {
             Log in to coordinate your class events effortlessly.
           </p>
         </div>
+
+        {/* login card */}
         <div style={styles.right}>
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Login</h2>
+
             <label htmlFor="username" style={styles.label}>Username</label>
-            <input id="username" name="username" value={creds.username} onChange={e => setCreds({ ...creds, username: e.target.value })} placeholder="Enter your username" style={styles.input}/>
+            <input
+              id="username"
+              name="username"
+              value={creds.username}
+              onChange={e => setCreds({ ...creds, username: e.target.value })}
+              placeholder="Enter your username"
+              style={styles.input}
+            />
+
             <label htmlFor="password" style={styles.label}>Password</label>
-            <input id="password" name="password" type="password" value={creds.password} onChange={e => setCreds({ ...creds, password: e.target.value })} placeholder="Enter your password" style={styles.input}/>
-            <button onClick={handleLogin} type="button" style={styles.primaryBtn}>Log In</button>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              value={creds.password}
+              onChange={e => setCreds({ ...creds, password: e.target.value })}
+              placeholder="Enter your password"
+              style={styles.input}
+            />
+
+            {error && <p style={{ color: 'red', marginTop: 0 }}>{error}</p>}
+
+            <button onClick={handleLogin} type="button" style={styles.primaryBtn}>
+              Log In
+            </button>
+
             <div style={styles.or}>Or</div>
-            <button onClick={handleRegister} type="button" style={styles.secondaryBtn}>Request a New Account</button>
+
+            <button
+              onClick={() => navigate('/register')}
+              type="button"
+              style={styles.secondaryBtn}
+            >
+              Request a New Account
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
