@@ -10,6 +10,13 @@
   font-family: 'Montserrat', sans-serif;
 }
 
+html, body {
+  margin: 0;          
+  height: 100%;
+  background: #f8f9fa;  
+}
+
+
 .register-header {
   position: fixed;
   inset: 0 0 auto;            
@@ -24,6 +31,18 @@
   z-index: 1000;
   box-sizing: border-box;
 }
+
+.register-wrap {
+  min-height: calc(100vh - 70px);
+  margin-top: 70px;
+
+  display: flex;
+  justify-content: center;   /* horizontal */
+  align-items:   center;     /* vertical  */
+  padding: 20px;
+  background: #f8f9fa;
+}
+
 
 .brand-text {
   font: 700 26px/1.2 'Montserrat', sans-serif;
