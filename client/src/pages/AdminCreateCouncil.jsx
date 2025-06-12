@@ -1,5 +1,6 @@
 // ── src/pages/AdminCreateCouncil.jsx
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import Layout from '../components/Layout';
 import AddAdvisor from '../components/AddAdvisor';
 import api from '../api'; 
@@ -45,6 +46,32 @@ export default function AdminCreateCouncil() {
     advisorId: '',
   });
 
+  // on-mount: fetch all Councils from server and bucket by class_name
+  useEffect(() => {
+      (async () => {
+        try {
+          const { data } = await api.get('/api/councils');
+          // data is array of { grad_year, academic_year, class_name, advisor_id }
+          const buckets = { first: [], second: [], third: [], trustees: [] };
+          for (const row of data) {
+            const { grad_year, academic_year, class_name, advisor_id } = row;
+            // look up advisor name if you have an API or map; for now leave blank or static
+            const advisorName = advisors.find(a => a.id === advisor_id)?.name || '';
+            buckets[class_name]?.push({
+              id: `${class_name}-${grad_year}`,    // or row-specific PK
+              gradYear: grad_year,
+              acadYear: academic_year,
+              committees: [],                      // committees come from separate table
+              advisorName
+            });
+          }
+          setCouncils(buckets);
+        } catch (err) {
+          console.error('Failed to load councils:', err);
+        }
+      })();
+    }, []);
+
   /* ---------- handlers ---------- */
   const handleChange = e =>
     setForm(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -61,12 +88,12 @@ export default function AdminCreateCouncil() {
  /* save council => send to server, then append into UI state */
 const saveCouncil = async () => {
   const payload = {
-    gradYear:      Number(form.gradYear),
-    academicYear:  `${form.yearFrom}–${form.yearTo}`,
-    className:     `${form.gradYear}-${form.yearTo}`,
-    advisorId:     Number(form.advisorId) || null,
-    committees:    form.committees.filter(Boolean),
-  };
+        gradYear:      Number(form.gradYear),
+        academicYear:  `${form.yearFrom}–${form.yearTo}`,
+        className:     form.councilType,                    // ← “first”/“second”/…
+        advisorId:     Number(form.advisorId) || null,
+        committees:    form.committees.filter(Boolean),
+      };
 
   try {
     // 1) persist to backend
@@ -75,18 +102,18 @@ const saveCouncil = async () => {
     // 2) update local UI
     const advisorName = advisors.find(a => a.id === payload.advisorId)?.name || '';
     setCouncils(c => ({
-      ...c,
-      [form.councilType]: [
-        ...c[form.councilType],
-        {
-          id:          Date.now(),
-          gradYear:    payload.gradYear,
-          acadYear:    payload.academicYear,
-          committees:  payload.committees,
-          advisorName,
-        }
-      ]
-    }));
+            ...c,
+            [form.councilType]: [
+              ...c[form.councilType],
+              {
+                id:         Date.now(),
+                gradYear:   payload.gradYear,
+                acadYear:   payload.academicYear,
+                committees: payload.committees,
+                advisorName
+              }
+            ]
+          }));
 
     // reset form & close modal
     setForm({ councilType:'', gradYear:'', yearFrom:'', yearTo:'', committees:[''], advisorId:'' });
