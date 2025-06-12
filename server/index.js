@@ -26,8 +26,10 @@ const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173']
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
   : defaultOrigins
-
-app.use(morgan('dev'));  
+morgan.token('date', () => new Date().toISOString());
+app.use(
+  morgan(':date :method :url :status :response-time ms - :res[content-length]')
+);
 
 app.use(
   cors({
