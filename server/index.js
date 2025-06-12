@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import morgan from 'morgan';
+import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 
 
 
@@ -25,8 +26,10 @@ const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173']
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
   : defaultOrigins
-
-app.use(morgan('dev'));  
+morgan.token('date', () => new Date().toISOString());
+app.use(
+  morgan(':date :method :url :status :response-time ms - :res[content-length]')
+);
 
 app.use(
   cors({
@@ -40,6 +43,27 @@ app.use(
 )
 
 app.use(express.json())
+
+app.post('/api/councils', async (req, res) => {
+  try {
+    const { gradYear, academicYear, className, advisorId, committees } = req.body;
+    await createCouncilYear({ gradYear, academicYear, className, advisorId, committees });
+    res.status(201).end();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/councils', async (req, res) => {
+  try {
+    const list = await getAllCouncilYears();
+    res.json(list);
+  } catch (err) {
+    console.error(err);
+    res.status(500).end();
+  }
+});
 
 app.post('/api/request-account', async (req, res) => {
   const { firstName, lastName, email, classId } = req.body

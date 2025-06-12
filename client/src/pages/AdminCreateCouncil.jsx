@@ -1,7 +1,8 @@
 // ── src/pages/AdminCreateCouncil.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import AddAdvisor from '../components/AddAdvisor';
+import api from '../api'; 
 
 /* ---------- centred modal wrapper ---------- */
 function Modal({ open, onClose, children }) {
@@ -14,15 +15,12 @@ function Modal({ open, onClose, children }) {
   );
 }
 
-/* ---------- page ---------- */
 export default function AdminCreateCouncil() {
-  /* advisors list (expandable) */
   const [advisors, setAdvisors] = useState([
-    { id: 1, name: 'Alice Smith' },
-    { id: 2, name: 'Carmen Nguyen' },
+    { id: 1, name: 'Alice Smith' },
+    { id: 2, name: 'Carmen Nguyen' },
   ]);
 
-  /* councils bucketed by type */
   const [councils, setCouncils] = useState({
     first:    [],
     second:   [],
@@ -30,61 +28,119 @@ export default function AdminCreateCouncil() {
     trustees: [],
   });
 
-  /* modals */
   const [showCouncilForm, setShowCouncilForm] = useState(false);
   const [showAdvisorModal, setShowAdvisorModal] = useState(false);
 
-  /* council‑form fields */
   const [form, setForm] = useState({
     councilType: '',
-    gradYear: '',
-    yearFrom: '',
-    yearTo: '',
-    committees: [''],
-    advisorId: '',
+    gradYear:    '',
+    yearFrom:    '',
+    yearTo:      '',
+    committees:  [''],
+    advisorId:   '',
   });
 
-  /* ---------- handlers ---------- */
+  // on-mount: load from server
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get('/api/councils');
+        const buckets = { first: [], second: [], third: [], trustees: [] };
+        data.forEach(row => {
+          const {
+            grad_year,
+            academic_year,
+            class_name,
+            advisor_id,
+            committees,
+          } = row;
+          const advisorName =
+            advisors.find(a => a.id === advisor_id)?.name || '';
+          buckets[class_name]?.push({
+            id:          `${class_name}-${grad_year}`,
+            gradYear:    grad_year,
+            acadYear:    academic_year,
+            committees,                  // <-- pull in your array!
+            advisorName,
+          });
+        });
+        setCouncils(buckets);
+      } catch (err) {
+        console.error('Failed to load councils:', err);
+      }
+    })();
+  }, [advisors]);
+
   const handleChange = e =>
-    setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
   const handleCommitteeChange = (i, val) =>
-    setForm(p => ({
-      ...p,
-      committees: p.committees.map((c, idx) => (idx === i ? val : c)),
+    setForm(f => ({
+      ...f,
+      committees: f.committees.map((c, idx) =>
+        idx === i ? val : c
+      ),
     }));
 
-  const addCommittee    = () => setForm(p => ({ ...p, committees:[...p.committees,''] }));
-  const removeCommittee = i => setForm(p => ({ ...p, committees:p.committees.filter((_,idx)=>idx!==i) }));
+  const addCommittee = () =>
+    setForm(f => ({ ...f, committees: [...f.committees, ''] }));
+  const removeCommittee = i =>
+    setForm(f => ({
+      ...f,
+      committees: f.committees.filter((_, idx) => idx !== i),
+    }));
 
-  /* save council => push to correct bucket */
-  const saveCouncil = () => {
-    const advisorName = advisors.find(a => a.id === Number(form.advisorId))?.name || '';
-    const newCouncil  = {
-      id: Date.now(),
-      gradYear : form.gradYear,
-      acadYear : `${form.yearFrom}–${form.yearTo}`,
-      committees: form.committees.filter(Boolean),
-      advisorName,
+  const saveCouncil = async () => {
+    const payload = {
+      gradYear:      Number(form.gradYear),
+      academicYear:  `${form.yearFrom}–${form.yearTo}`,
+      className:     form.councilType,        // “first”/“second”/…
+      advisorId:     Number(form.advisorId) || null,
+      committees:    form.committees.filter(Boolean),
     };
-    setCouncils(p => ({
-      ...p,
-      [form.councilType]: [...p[form.councilType], newCouncil],
-    }));
-    /* reset & close */
-    setForm({ councilType:'', gradYear:'', yearFrom:'', yearTo:'', committees:[''], advisorId:'' });
-    setShowCouncilForm(false);
+
+    try {
+      await api.post('/api/councils', payload);
+
+      // append to our UI state
+      const advisorName =
+        advisors.find(a => a.id === payload.advisorId)?.name || '';
+      setCouncils(c => ({
+        ...c,
+        [form.councilType]: [
+          ...c[form.councilType],
+          {
+            id:          Date.now(),
+            gradYear:    payload.gradYear,
+            acadYear:    payload.academicYear,
+            committees:  payload.committees,
+            advisorName,
+          },
+        ],
+      }));
+
+      setForm({
+        councilType: '',
+        gradYear:    '',
+        yearFrom:    '',
+        yearTo:      '',
+        committees:  [''],
+        advisorId:   '',
+      });
+      setShowCouncilForm(false);
+    } catch (err) {
+      console.error('Failed to save council:', err);
+      alert('There was an error saving this council');
+    }
   };
 
-  /* advisor‑modal save */
-  const saveNewAdvisor = (a) => {
-    const name = `${a.firstName} ${a.lastName}`;
+  const saveNewAdvisor = a => {
+    const name = `${a.firstName} ${a.lastName}`;
     setAdvisors(prev => [...prev, { id: a.id, name }]);
-    setForm(p => ({ ...p, advisorId: a.id }));
+    setForm(f => ({ ...f, advisorId: a.id }));
     setShowAdvisorModal(false);
   };
 
-  /* ---------- helpers ---------- */
   const renderCouncilTable = (label, arr) => (
     <>
       <h2 style={s.tableTitle}>{label}</h2>
@@ -92,8 +148,8 @@ export default function AdminCreateCouncil() {
         <table style={s.table}>
           <thead>
             <tr>
-              <th style={s.th}>Grad Year</th>
-              <th style={s.th}>Academic Year</th>
+              <th style={s.th}>Grad Year</th>
+              <th style={s.th}>Academic Year</th>
               <th style={s.th}>Committees</th>
               <th style={s.th}>Advisor</th>
             </tr>
@@ -103,12 +159,11 @@ export default function AdminCreateCouncil() {
               <tr key={c.id}>
                 <td style={s.td}>{c.gradYear}</td>
                 <td style={s.td}>{c.acadYear}</td>
-                {/* <td style={s.td}>{c.committees.join(', ')}</td> */}
                 <td style={s.td}>
-                {c.committees.map((name, i) => (
-                  <div key={i}>{name}</div>   
-                ))}
-              </td>
+                  {c.committees.map((n, i) => (
+                    <div key={i}>{n}</div>
+                  ))}
+                </td>
                 <td style={s.td}>{c.advisorName}</td>
               </tr>
             ))}
@@ -120,70 +175,91 @@ export default function AdminCreateCouncil() {
     </>
   );
 
-  /* ---------- render ---------- */
   return (
     <Layout>
-      <h1 style={s.h1}>Admin Create Council Page</h1>
+      <h1 style={s.h1}>Admin Create Council Page</h1>
 
       <div style={{ textAlign:'center', marginBottom:32 }}>
         <button style={s.createBtn} onClick={()=>setShowCouncilForm(true)}>
-          + Create New Council
+          + Create New Council
         </button>
       </div>
 
-      {/* tables ---------------------------------------------------------- */}
-      {renderCouncilTable('First‑Year Council',   councils.first)}
-      {renderCouncilTable('Second‑Year Council',  councils.second)}
-      {renderCouncilTable('Third‑Year Council',   councils.third)}
+      {renderCouncilTable('First-Year Council',   councils.first)}
+      {renderCouncilTable('Second-Year Council',  councils.second)}
+      {renderCouncilTable('Third-Year Council',   councils.third)}
       {renderCouncilTable('Trustees',             councils.trustees)}
 
-      {/* council‑form modal -------------------------------------------- */}
+      <div style={{ marginTop: 48, textAlign: 'center' }}>
+        <h2 style={{ ...s.tableTitle, marginBottom: 16 }}>Admin Add Advisor</h2>
+        <button
+          style={{ 
+            padding: '10px 20px',
+            backgroundColor: '#4b77d1',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontSize: 16
+          }}
+          onClick={() => setShowAdvisorModal(true)}
+        >
+          + Add New Advisor
+        </button>
+      </div>
+
       <Modal open={showCouncilForm} onClose={()=>setShowCouncilForm(false)}>
-        <h2 style={{ marginTop:0 }}>New Council</h2>
+        <h2>New Council</h2>
 
         <label style={s.label}>Council</label>
         <select name="councilType" value={form.councilType} onChange={handleChange} style={s.select}>
           <option value="" disabled>Choose…</option>
-          <option value="first">First‑Year Council</option>
-          <option value="second">Second‑Year Council</option>
-          <option value="third">Third‑Year Council</option>
+          <option value="first">First-Year</option>
+          <option value="second">Second-Year</option>
+          <option value="third">Third-Year</option>
           <option value="trustees">Trustees</option>
         </select>
 
-        <label style={s.label}>Council Graduation Year</label>
-        <input name="gradYear" type="number" placeholder="2028" value={form.gradYear} onChange={handleChange} style={s.gradYearInput}/>
+        <label style={s.label}>Graduation Year</label>
+        <input name="gradYear" type="number" value={form.gradYear} onChange={handleChange} style={s.gradYearInput}/>
 
-        <label style={s.label}>Academic Year</label>
+        <label style={s.label}>Academic Year</label>
         <div style={s.yearRow}>
-          <input name="yearFrom" type="number" placeholder="2025" value={form.yearFrom} onChange={handleChange} style={s.yearInput}/>
+          <input name="yearFrom" type="number" value={form.yearFrom} onChange={handleChange} style={s.yearInput}/>
           <span style={s.dash}>–</span>
-          <input name="yearTo" type="number" placeholder="2026" value={form.yearTo} onChange={handleChange} style={s.yearInput}/>
+          <input name="yearTo"   type="number" value={form.yearTo}   onChange={handleChange} style={s.yearInput}/>
         </div>
 
-        <label style={s.label}>Committees (people can join)</label>
+        <label style={s.label}>Committees</label>
         {form.committees.map((c,i)=>(
           <div key={i} style={s.commRow}>
-            <input value={c} placeholder="e.g. Wellness Committee" onChange={e=>handleCommitteeChange(i,e.target.value)} style={s.commInput}/>
+            <input
+              value={c}
+              onChange={e=>handleCommitteeChange(i,e.target.value)}
+              style={s.commInput}
+            />
             {form.committees.length>1 && (
               <button onClick={()=>removeCommittee(i)} style={s.delBtn}>✕</button>
             )}
           </div>
         ))}
-        <button style={s.addBtn} onClick={addCommittee}>＋ Add Committee</button>
+        <button onClick={addCommittee} style={s.addBtn}>＋ Add Committee</button>
 
-        <label style={s.label}>Assign Advisor</label>
+        <label style={s.label}>Assign Advisor</label>
         <select
           name="advisorId"
           value={form.advisorId}
-          onChange={e =>{
-            if (e.target.value==='new'){ setShowAdvisorModal(true); }
-            else                         handleChange(e);
+          onChange={e=>{
+            if (e.target.value==='new') setShowAdvisorModal(true);
+            else                       handleChange(e);
           }}
           style={s.select}
         >
           <option value="" disabled>Select advisor…</option>
-          {advisors.map(a=> <option key={a.id} value={a.id}>{a.name}</option>)}
-          <option value="new">＋ Add New Advisor</option>
+          {advisors.map(a => (
+            <option key={a.id} value={a.id}>{a.name}</option>
+          ))}
+          <option value="new">＋ Add New Advisor</option>
         </select>
 
         <div style={{ textAlign:'right', marginTop:28 }}>
@@ -192,7 +268,6 @@ export default function AdminCreateCouncil() {
         </div>
       </Modal>
 
-      {/* advisor‑creation modal ---------------------------------------- */}
       <AddAdvisor
         isOpen={showAdvisorModal}
         onClose={()=>setShowAdvisorModal(false)}
@@ -201,6 +276,8 @@ export default function AdminCreateCouncil() {
     </Layout>
   );
 }
+
+// … (styles omitted for brevity)
 
 /* ---------- styles ---------- */
 const s = {

@@ -3,7 +3,7 @@ import pool from '../db.js';
 
 export async function getUserByUsername(username) {
   const rows = await pool.query(
-    'SELECT id, username, password_hash AS passwordHash FROM users WHERE username = ?',
+    'SELECT id, username, password_hash AS passwordHash FROM CouncilMember WHERE username = ?',
     [username]
   )
   return rows[0] || null
@@ -12,7 +12,7 @@ export async function getUserByUsername(username) {
 export async function createUser({ firstName, lastName, email, classId, username, passwordHash }) {
   try {
     const result = await pool.query(
-      `INSERT INTO users
+      `INSERT INTO CouncilMember
          (first_name, last_name, email, class_id, username, password_hash)
        VALUES (?,?,?,?,?,?)`,
       [firstName, lastName, email, classId, username, passwordHash]
@@ -28,7 +28,7 @@ export async function createUser({ firstName, lastName, email, classId, username
 }
 export async function createAccountRequest({ firstName, lastName, email, classId }) {
   await pool.query(
-    `INSERT INTO account_requests
+    `INSERT INTO AccountRequest
       (first_name, last_name, email, class_id)
     VALUES (?,?,?,?)`,
     [firstName, lastName, email, classId]
