@@ -45,18 +45,18 @@ export async function getAllCouncilYears() {
   const conn = await pool.getConnection();
   try {
     // fetch all CouncilYears
-    const [years] = await conn.query(`SELECT * FROM CouncilYear`);
+    const years = await conn.query(`SELECT * FROM CouncilYear`);
     // fetch all Committees
-    const [comms] = await conn.query(`SELECT * FROM Committee`);
+    const comms = await conn.query(`SELECT * FROM Committee`);
 
     return years.map(y => ({
-      gradYear:       y.grad_year,
-      academicYear:   y.academic_year,
-      className:      y.class_name,
-      advisorId:      y.advisor_id,
-      committees:     comms
-                        .filter(c => c.grad_year === y.grad_year && c.academic_year === y.academic_year)
-                        .map(c => c.committee_name)
+      grad_year:       y.grad_year,
+      academic_year:   y.academic_year,
+      class_name:      y.class_name,
+      advisor_id:      y.advisor_id,
+      committees:      comms
+                         .filter(c => c.grad_year === y.grad_year && c.academic_year === y.academic_year)
+                         .map(c => c.committee_name)
     }));
   } finally {
     conn.release();
