@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import AddAdvisor from '../components/AddAdvisor';
+import api from '../api'; 
 
 /* ---------- centred modal wrapper ---------- */
 function Modal({ open, onClose, children }) {
@@ -57,24 +58,45 @@ export default function AdminCreateCouncil() {
   const addCommittee    = () => setForm(p => ({ ...p, committees:[...p.committees,''] }));
   const removeCommittee = i => setForm(p => ({ ...p, committees:p.committees.filter((_,idx)=>idx!==i) }));
 
-  /* save council => push to correct bucket */
-  const saveCouncil = () => {
-    const advisorName = advisors.find(a => a.id === Number(form.advisorId))?.name || '';
-    const newCouncil  = {
-      id: Date.now(),
-      gradYear : form.gradYear,
-      acadYear : `${form.yearFrom}–${form.yearTo}`,
-      committees: form.committees.filter(Boolean),
-      advisorName,
-    };
-    setCouncils(p => ({
-      ...p,
-      [form.councilType]: [...p[form.councilType], newCouncil],
+ /* save council => send to server, then append into UI state */
+const saveCouncil = async () => {
+  const payload = {
+    gradYear:      Number(form.gradYear),
+    academicYear:  `${form.yearFrom}–${form.yearTo}`,
+    className:     `${form.gradYear}-${form.yearTo}`,
+    advisorId:     Number(form.advisorId) || null,
+    committees:    form.committees.filter(Boolean),
+  };
+
+  try {
+    // 1) persist to backend
+    await api.post('/api/councils', payload);
+
+    // 2) update local UI
+    const advisorName = advisors.find(a => a.id === payload.advisorId)?.name || '';
+    setCouncils(c => ({
+      ...c,
+      [form.councilType]: [
+        ...c[form.councilType],
+        {
+          id:          Date.now(),
+          gradYear:    payload.gradYear,
+          acadYear:    payload.academicYear,
+          committees:  payload.committees,
+          advisorName,
+        }
+      ]
     }));
-    /* reset & close */
+
+    // reset form & close modal
     setForm({ councilType:'', gradYear:'', yearFrom:'', yearTo:'', committees:[''], advisorId:'' });
     setShowCouncilForm(false);
-  };
+
+  } catch (err) {
+    console.error('Failed to save council:', err);
+    alert('There was an error saving this council');
+  }
+};
 
   /* advisor‑modal save */
   const saveNewAdvisor = (a) => {
