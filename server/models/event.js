@@ -1,6 +1,7 @@
 import pool from '../db.js'
 import { promisify } from 'util'
 
+
 export async function createEvent(data) {
   const conn  = await pool.getConnection()
   const query = promisify(conn.query).bind(conn)
@@ -24,6 +25,7 @@ export async function createEvent(data) {
       ]
     )
     const eventId = result.insertId
+
 
     for (const s of data.supplies ?? []) {
       let vendorId = null
@@ -71,6 +73,24 @@ export async function createEvent(data) {
   } catch (err) {
     await conn.rollback()
     throw err
+  } finally {
+    conn.release()
+  }
+}
+export async function getEvents(limit = 3, order = 'DESC') {
+  const conn  = await pool.getConnection()
+  const query = promisify(conn.query).bind(conn)
+
+  try {
+    const rows = await query(
+      `SELECT *
+       FROM events
+       ORDER BY event_date ${order}
+       LIMIT ?`,
+      [limit]
+    )
+
+    return rows
   } finally {
     conn.release()
   }

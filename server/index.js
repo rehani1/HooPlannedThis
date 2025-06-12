@@ -1,9 +1,12 @@
-import { createEvent } from './models/event.js';
+import { createEvent, getEvents } from './models/event.js'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import morgan from 'morgan';
+
+
 
 import {
   getUserByUsername,
@@ -22,6 +25,8 @@ const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173']
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
   : defaultOrigins
+
+app.use(morgan('dev'));  
 
 app.use(
   cors({
@@ -62,7 +67,7 @@ app.post('/api/register', async (req, res) => {
 
   return res.status(201).json({ message: 'User registered', userId: user.id });
   } catch (err) {
-  if (err.status === 409) {           // duplicate e-mail / username
+  if (err.status === 409) {           
   return res.status(409).json({ message: err.message });
     }
     console.error(err);
@@ -113,5 +118,22 @@ app.post('/api/events', async (req, res) => {
     res.sendStatus(500);
   }
 });
+
+app.get('/api/events', async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 3;
+    const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
+
+ 
+    const rows = await getEvents(limit, order);
+
+    console.log(`→ GET /api/events served ${rows.length} rows`);
+    return res.json(rows);
+  } catch (err) {
+    console.error('Error in GET /api/events:', err);
+    return next(err);
+  }
+});
+
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
