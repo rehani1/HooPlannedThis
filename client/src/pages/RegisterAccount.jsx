@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CalendarIcon from '../components/CalendarIcon';
 import api from '../api';
-import '../components/RegisterAccount.css';  // keeps layout & button rules
-import '../styles/forms.css';               // ← NEW: shared form controls
+import '../components/RegisterAccount.css';  
+import '../styles/forms.css';               
 
 export default function RegisterAccount() {
   const [formData, setFormData] = useState({
