@@ -10,7 +10,7 @@ export async function createEvent(data) {
     await conn.beginTransaction()
 
     const result = await query(
-      `INSERT INTO events
+      `INSERT INTO Event
          (title, committee, event_date, start_time, end_time,
           venue_name, venue_contact, venue_address,
           latitude, longitude, budget, description)
@@ -31,7 +31,7 @@ export async function createEvent(data) {
       let vendorId = null
       if (s.vendor) {
         const vr = await query(
-          `INSERT INTO vendors
+          `INSERT INTO Vendor
              (company, contact_name, contact_address,
               contact_email, contact_phone, notes)
            VALUES (?,?,?,?,?,?)`,
@@ -48,7 +48,7 @@ export async function createEvent(data) {
       }
 
       await query(
-        `INSERT INTO event_supplies
+        `INSERT INTO Supply
            (event_id, name, quantity, unit_cost, total_cost,
             notes, link, reusable, return_needed, vendor_id)
          VALUES (?,?,?,?,?,?,?,?,?,?)`,
@@ -84,7 +84,7 @@ export async function getEvents(limit = 3, order = 'DESC') {
   try {
     const rows = await query(
       `SELECT *
-       FROM events
+       FROM Event
        ORDER BY event_date ${order}
        LIMIT ?`,
       [limit]
