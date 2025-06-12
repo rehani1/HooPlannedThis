@@ -89,5 +89,5 @@ html, body, #root {
 /* Add this class for pages that need full-width layouts (like forms, dashboards) */
   .page-content.full-width {
     padding: 0;
-  }
+}
   
