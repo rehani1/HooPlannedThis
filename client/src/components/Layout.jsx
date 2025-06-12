@@ -1,11 +1,20 @@
 // src/components/Layout.jsx
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import NavBar from './NavBar';
 import CalendarIcon from './CalendarIcon';
 import './Layout.css';
 
 const Layout = ({ children }) => {
+  const location = useLocation();
+  
+  const fullWidthPages = ['/register', '/login', '/dashboard'];
+  
+  const isFullWidth = fullWidthPages.includes(location.pathname);
+  
+  // Determine the CSS class for page-content
+  const pageContentClass = isFullWidth ? 'page-content full-width' : 'page-content with-padding';
+
   return (
     <div className="layout-wrapper">
       <header className="top-header">
@@ -19,11 +28,14 @@ const Layout = ({ children }) => {
     </header>
 
       <div className="layout-container">
-        <div className="NavBar">
-          <NavBar />
-        </div>
+        {!isFullWidth && (
+          <div className="NavBar">
+            <NavBar />
+          </div>
+        )}
+
         <div className="main-content">
-          <div className="page-content">{children}</div>
+          <div className={pageContentClass}>{children}</div>
         </div>
       </div>
     </div>
@@ -31,31 +43,3 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
-
-
-
-
-
-
-// import React from 'react';
-// import NavBar from './NavBar';
-// import './Layout.css';
-
-// const Layout = ({ children }) => {
-//   return (
-//     <div className="layout-container">
-//       <NavBar />
-//       <div className="main-content">
-//         <header className="top-header">
-//           <div className="logo">🟧 HooPlannedThis</div>
-//           <div className="icons">🔔 ✉️</div>
-//         </header>
-//         <div className="page-content">
-//           {children}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Layout;
