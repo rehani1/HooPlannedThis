@@ -45,9 +45,8 @@ export async function getAllCouncilYears() {
   const conn = await pool.getConnection();
   try {
 
-    const [years] = await conn.query('SELECT * FROM CouncilYear');
-    const [comms] = await conn.query('SELECT * FROM Committee');
-
+    const [years] = await conn.promise().query('SELECT * FROM CouncilYear');
+    const [comms] = await conn.promise().query('SELECT * FROM Committee');
     return years.map(y => ({
       grad_year:     y.grad_year,
       academic_year: y.academic_year,
