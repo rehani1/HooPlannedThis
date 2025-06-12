@@ -1,0 +1,23 @@
+nohup: ignoring input
+Server running on port 4000
+TypeError: Cannot read properties of undefined (reading 'release')
+    at createEvent (file:///home/ec2-user/HooPlannedThis/server/models/event.js:77:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///home/ec2-user/HooPlannedThis/server/index.js:106:16
+/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/protocol/Parser.js:437
+      throw err; // Rethrow non-MySQL errors
+      ^
+
+TypeError: cb is not a function
+    at Handshake.onConnect (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/Pool.js:64:7)
+    at Handshake.<anonymous> (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/Connection.js:526:10)
+    at Handshake._callback (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/Connection.js:488:16)
+    at Sequence.end (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/protocol/sequences/Sequence.js:83:24)
+    at Sequence.OkPacket (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/protocol/sequences/Sequence.js:92:8)
+    at Protocol._parsePacket (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/protocol/Protocol.js:291:23)
+    at Parser._parsePacket (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/protocol/Parser.js:433:10)
+    at Parser.write (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/protocol/Parser.js:43:10)
+    at Protocol.write (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/protocol/Protocol.js:38:16)
+    at Socket.<anonymous> (/home/ec2-user/HooPlannedThis/server/node_modules/mysql/lib/Connection.js:88:28)
+
+Node.js v18.20.8
