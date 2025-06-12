@@ -1,3 +1,4 @@
+// Alignment needs to be formatted for Windows (stuck at left alignment)
 
 import React, { useState } from 'react';
 import CalendarIcon from '../components/CalendarIcon'; 
@@ -39,23 +40,22 @@ const styles = {
   },
   container: {
     display: 'flex',
+    flexWrap: 'wrap',
     width: '100%',
-    maxWidth: 1200,
+    maxWidth: 960,
     margin: '0 auto',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     padding: '0 40px',
+    gap: 48,
   },
   left: {
-    // flex: '0 0 460px',
-    // paddingRight: 60,
-    flex: 1,
+    flex: '0 0 auto',
     maxWidth: 520,
     paddingRight: 40,
   },
   right: {
-    // flex: '0 0 460px',
-    flex: 1,
+    flex: '0 0 auto',
     maxWidth: 480,
   },
   brandTitle: {
