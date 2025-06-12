@@ -85,7 +85,7 @@ export default function Events() {
         )}
 
     
-        <CalendarComponent />
+   
 
         <Link to="/events/createevent">
           <button
