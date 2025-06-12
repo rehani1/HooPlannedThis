@@ -103,7 +103,12 @@ export default function AdminCreateCouncil() {
               <tr key={c.id}>
                 <td style={s.td}>{c.gradYear}</td>
                 <td style={s.td}>{c.acadYear}</td>
-                <td style={s.td}>{c.committees.join(', ')}</td>
+                {/* <td style={s.td}>{c.committees.join(', ')}</td> */}
+                <td style={s.td}>
+                {c.committees.map((name, i) => (
+                  <div key={i}>{name}</div>   
+                ))}
+              </td>
                 <td style={s.td}>{c.advisorName}</td>
               </tr>
             ))}
