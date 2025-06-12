@@ -126,6 +126,7 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(data.user));
       setIsAuth(true);
       navigate('/home', { replace: true });
+      window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }

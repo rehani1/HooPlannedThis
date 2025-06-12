@@ -14,7 +14,8 @@ const NavBar = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsAuth(false);                        
-    navigate('/login', { replace: true });    
+    navigate('/login', { replace: true });   
+    window.location.reload(); 
 
   };
 
