@@ -12,7 +12,6 @@ import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 import {
   getUserByUsername,
   createUser,
-  createAccountRequest
 } from './models/user.js'
 
 dotenv.config()
@@ -65,11 +64,6 @@ app.get('/api/councils', async (req, res) => {
   }
 });
 
-app.post('/api/request-account', async (req, res) => {
-  const { firstName, lastName, email, classId } = req.body
-  await createAccountRequest({ firstName, lastName, email, classId })
-  res.status(201).json({ message: 'Request received' })
-})
 
 app.post('/api/register', async (req, res) => {
   try {
