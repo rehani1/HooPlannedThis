@@ -93,7 +93,7 @@ export default function AdminCreateCouncil() {
   const saveCouncil = async () => {
     const payload = {
       gradYear:      Number(form.gradYear),
-      academicYear:  `${form.yearFrom}–${form.yearTo}`,
+      academicYear:  `${form.yearFrom}-${form.yearTo}`,
       className:     form.councilType,        // “first”/“second”/…
       advisorId:     Number(form.advisorId) || null,
       committees:    form.committees.filter(Boolean),
