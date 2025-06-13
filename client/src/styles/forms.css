@@ -18,6 +18,11 @@
   transition: box-shadow .2s;
 }
 
+.input-field[type="password"] {
+  font-size: 20px;          
+  letter-spacing: 0.05em;   
+}
+
 .input-field::placeholder {
   color: #94a3b8;
   font-weight: 400;

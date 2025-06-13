@@ -81,16 +81,23 @@ export default function RegisterAccount() {
 
   return (
     <div className="register-container">
-      {/* brand header */}
-      <div className="register-header">
-        <div className="register-header">
-            <Link to="/login" className="back-arrow" aria-label="Back to login">
-            <ArrowLeft size={24} strokeWidth={2.2} />
-            </Link>
-        </div>
+    {/* brand header */}
+    <div className="register-header">
+      {/* back arrow */}
+      <Link to="/login" className="back-arrow" aria-label="Back to login">
+        <ArrowLeft size={24} strokeWidth={2.2} />
+      </Link>
+
+      {/* logo + brand text */}
+      <Link
+        to="/home"
+        className="logo-with-icon"
+        style={{ textDecoration: 'none', color: 'inherit' }}
+      >
         <CalendarIcon />
         <span className="brand-text">HooPlannedThis</span>
-      </div>
+      </Link>
+    </div>
 
       <div className="register-card">
         <h1>Request an Account</h1>
