@@ -10,7 +10,7 @@ import {
   getTotalCouncilBudget,
   getCommitteeBudgets
 } from './models/budget.js';
-import committeesRouter from './routes/committees.js';
+import committeesRouter from './models/committees.js';
 
 
 import {
