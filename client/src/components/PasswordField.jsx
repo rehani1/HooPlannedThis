@@ -83,11 +83,11 @@ export default function PasswordField({
         aria-label={showPassword ? 'Hide password' : 'Show password'}
         style={{
           position: 'absolute',
-          right: 6,
+          right: 16,
           top: '50%',
           transform: 'translateY(-50%)',   
-          width: 20,
-          height: 20,
+          width: 24,
+          height: 24,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -98,9 +98,9 @@ export default function PasswordField({
         }}
       >
         {showPassword ? (
-          <EyeIcon width={20} height={20} fill={eyeColour} />
+          <EyeIcon width={24} height={24} fill={eyeColour} />
         ) : (
-          <EyeSlashIcon width={20} height={20} fill={eyeColour} />
+          <EyeSlashIcon width={24} height={24} fill={eyeColour} />
         )}
       </button>
     </div>
