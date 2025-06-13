@@ -32,13 +32,13 @@ export default function CreateAdvisorModal({ isOpen, onClose, onSave, initial = 
     }
     // Build payload to match Advisor table columns
     const payload = {
-      advisor_first_name: form.firstName,
-      advisor_last_name:  form.lastName,
-      building_name:      form.building   || null,
-      address:            form.address    || null,
-      advisor_email:      form.email      || null,
-      advisor_number:     form.phone      || null,
-    };
+      firstName: form.firstName,
+    lastName:  form.lastName,
+    building:  form.building,
+    address:   form.address,
+    email:     form.email,
+    phone:     form.phone,
+  };
     console.log('🛰️ CreateAdvisor payload →', payload);
     onSave(payload);
     onClose();
