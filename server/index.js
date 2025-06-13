@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 
 import committeesRouter from './models/committees.js';
-import advisorsRouter from './models/advisor.js';
+import { createAdvisor, getAdvisors } from './models/advisor.js';
 
 import {
   getUserByUsername,
@@ -175,8 +175,30 @@ app.get('/api/budget/allocations', async (req, res) => {
 });
 app.use('/api/committees', committeesRouter);
 
+// GET /api/advisors  
+app.get('/api/advisors', async (req, res) => {
+  try {
+    const list = await getAdvisors();
+    res.json(list);
+  } catch (err) {
+    console.error('GET /api/advisors error', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 app.use(express.json());
-app.use('/api/advisors', advisorsRouter);
+// POST /api/advisors  
+app.post('/api/advisors', async (req, res) => {
+  console.log('⏳ POST /api/advisors body →', req.body);
+  try {
+    const id = await createAdvisor(req.body);
+    console.log('✅ Created advisor with id', id);
+    res.status(201).json({ id });
+  } catch (err) {
+    console.error('POST /api/advisors error', err);
+    res.status(500).json({ message: 'Failed to create advisor' });
+  }
+});
+
 
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))

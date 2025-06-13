@@ -1,68 +1,64 @@
-import express from 'express';
-import pool    from '../db.js';
+// server/models/advisor.js
+import pool from '../db.js';
+import { promisify } from 'util';
 
-const router = express.Router();
-
-// GET all advisors
-router.get('/', async (_req, res) => {
+/**
+ * Inserts a new advisor into the database.
+ * @param {{ firstName: string, lastName: string, phone?: string, email?: string, building?: string, address?: string }} data
+ * @returns {Promise<number>} the newly created advisor_id
+ */
+export async function createAdvisor(data) {
+  const conn = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
   try {
-    const [rows] = await pool.query(
+    await conn.beginTransaction();
+
+    const res = await query(
+      `INSERT INTO Advisor
+         (advisor_first_name, advisor_last_name, advisor_number,
+          advisor_email, building_name, address)
+       VALUES (?,?,?,?,?,?)`,
+      [
+        data.firstName,
+        data.lastName,
+        data.phone        || null,
+        data.email        || null,
+        data.building     || null,
+        data.address      || null
+      ]
+    );
+
+    await conn.commit();
+    return res.insertId;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+/**
+ * Fetches a list of advisors from the database.
+ * @returns {Promise<Array>} array of advisor objects
+ */
+export async function getAdvisors() {
+  const conn = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
+  try {
+    const rows = await query(
       `SELECT
          advisor_id         AS id,
          advisor_first_name AS firstName,
          advisor_last_name  AS lastName,
-         building_name      AS building,
-         address,
+         advisor_number     AS phone,
          advisor_email      AS email,
-         advisor_number     AS phone
+         building_name      AS building,
+         address
        FROM Advisor`
     );
-    res.json(rows);
-  } catch (err) {
-    console.error('Error fetching advisors:', err);
-    res.status(500).json({ message: 'Server error' });
+    return rows;
+  } finally {
+    conn.release();
   }
-});
-
-// POST a new advisor
-router.post('/', async (req, res) => {
-  console.log('⏳ POST /api/advisors body →', req.body);
-
-  const {
-    advisor_first_name,
-    advisor_last_name,
-    building_name,
-    address,
-    advisor_email,
-    advisor_number
-  } = req.body;
-
-  if (!advisor_first_name || !advisor_last_name) {
-    return res.status(400).json({ message: 'First and last name required' });
-  }
-
-  try {
-    const [result] = await pool.query(
-      `INSERT INTO Advisor
-         (advisor_first_name, advisor_last_name,
-          building_name, address,
-          advisor_email, advisor_number)
-       VALUES (?,?,?,?,?,?)`,
-      [
-        advisor_first_name,
-        advisor_last_name,
-        building_name  || null,
-        address        || null,
-        advisor_email  || null,
-        advisor_number || null
-      ]
-    );
-    console.log('✅ Inserted advisor id:', result.insertId);
-    res.status(201).json({ id: result.insertId });
-  } catch (err) {
-    console.error('❌ Advisor insert error:', err);
-    res.status(500).json({ message: 'Failed to create advisor' });
-  }
-});
-
-export default router;
+}
