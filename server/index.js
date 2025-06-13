@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 
 import committeesRouter from './models/committees.js';
-
+import advisorsRouter from './models/advisor.js';
 
 import {
   getUserByUsername,
@@ -174,5 +174,7 @@ app.get('/api/budget/allocations', async (req, res) => {
   }
 });
 app.use('/api/committees', committeesRouter);
+
+app.use('/api/advisor', advisorsRouter);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
