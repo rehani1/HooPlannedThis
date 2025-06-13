@@ -29,8 +29,20 @@ html, body, #root {
     color: #003366;
     box-sizing: border-box;
   }
+
+  .back-arrow {
+    display: flex;
+    align-items: center;
+    margin-right: 12px;     
+    color: #003e83;         
+    text-decoration: none;
+    transition: transform .15s ease;
+  }
+
+  .back-arrow:hover {
+    transform: translateX(-2px);
+  }
   
-  /* Align icon and text */
   .logo-with-icon {
     display: flex;
     align-items: center;
@@ -81,12 +93,10 @@ html, body, #root {
     box-sizing: border-box;
   }
 
-  /* Add this class for pages that need the traditional padding */
   .page-content.with-padding {
     padding: 24px;
   }
 
-/* Add this class for pages that need full-width layouts (like forms, dashboards) */
   .page-content.full-width {
     padding: 0;
 }

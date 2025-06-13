@@ -1,4 +1,3 @@
-/* == Layout shell ============================================== */
 .register-container {
   display: flex;
   flex-direction: column;
@@ -17,7 +16,6 @@ html, body {
   background: #f8f9fa;
 }
 
-/* == Fixed top bar ============================================= */
 .register-header {
   position: fixed;
   inset: 0 0 auto;
@@ -25,7 +23,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 40px;            /* wider */
+  padding: 0 40px;            
   background: #ffffff;
   border-bottom: 1px solid #e9ecef;
   box-shadow: 0 2px 4px rgba(0,0,0,.06);
@@ -39,21 +37,20 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px;              /* wider */
+  padding: 24px;              
   background: #f8f9fa;
 }
 
 .brand-text {
-  font: 700 28px/1.2 'Montserrat', sans-serif;  /* wider */
+  font: 700 28px/1.2 'Montserrat', sans-serif;  
   color: #1e3a8a;
 }
 
-/* == Card ====================================================== */
 .register-card {
   width: 100%;
-  max-width: 600px;           /* wider */
+  max-width: 600px;           
   margin-top: 40px;
-  padding: 40px 40px 24px;    /* wider */
+  padding: 40px 40px 24px;    
   border: 1px solid #f1f3f4;
   border-radius: 16px;
   background: #ffffff;
@@ -61,34 +58,33 @@ html, body {
 }
 
 .register-card h1 {
-  margin: 0 0 28px;           /* wider */
+  margin: 0 0 28px;           
   text-align: center;
-  font: 700 32px/1.3 'Montserrat', sans-serif; /* wider */
+  font: 700 32px/1.3 'Montserrat', sans-serif;
   color: #1e3a8a;
 }
 
-/* == Form controls ============================================ */
 .form-group { margin-bottom: 14px; }
 .form-group:last-of-type { margin-bottom: 6px; }
 
 .register-card label {
   display: block;
-  margin-bottom: 6px;         /* wider */
-  font: 500 16px/1.4 'Montserrat', sans-serif; /* wider */
+  margin-bottom: 6px;         
+  font: 500 16px/1.4 'Montserrat', sans-serif; 
   color: #1e3a8a;
   text-align: left;
 }
 
 .register-card button {
   width: 100%;
-  height: 50px;               /* taller/wider */
+  height: 50px;               
   margin-top: 10px;
-  padding: 0 28px;            /* wider */
+  padding: 0 28px;           
   border: none;
   border-radius: 24px;
   background: #ff8937;
   color: #ffffff;
-  font: 500 17px 'Montserrat', sans-serif; /* wider */
+  font: 500 17px 'Montserrat', sans-serif; 
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(255,137,55,.2);
   transition: transform .2s, background .2s, box-shadow .2s;
@@ -104,34 +100,45 @@ html, body {
   transform: translateY(0);
 }
 
+.back-arrow {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;          
+  color: #003e83;              
+  text-decoration: none;
+  transition: transform .15s ease;
+}
+.back-arrow:hover { transform: translateX(-2px); }
+
 .register-card .error-message {
-  margin-top: 18px;           /* wider */
+  margin-top: 18px;           
   text-align: center;
-  font: 500 15px 'Montserrat', sans-serif; /* wider */
+  font: 500 15px 'Montserrat', sans-serif;
   color: #dc2626;
 }
 
-/* == Two‑column row layout ==================================== */
 .form-row {
   display: flex;
-  gap: 20px;                  /* wider */
+  gap: 20px;                  
 }
 
 .form-row .form-group {
   flex: 1 1 0;
-  margin-bottom: 14px;        /* wider */
+  margin-bottom: 14px;        
 }
 
-/* Stacks on phones */
 @media (max-width: 640px) {
   .form-row { flex-direction: column; gap: 0; }
   .form-row .form-group { margin-bottom: 12px; }
 }
 
-/* == Responsive tweaks ======================================== */
 @media (max-width: 480px) {
   .register-card    { max-width: 92%; padding: 28px; margin-top: 90px; }
   .register-card h1 { font-size: 24px; margin-bottom: 24px; }
   .register-header  { padding: 0 20px; }
   .brand-text       { font-size: 22px; }
+}
+
+.register-card .input-field {
+  max-width: 100%;
 }
