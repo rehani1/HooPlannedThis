@@ -1,18 +1,50 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import CalendarIcon from '../components/CalendarIcon';
 import CalendarComponent from '../components/CalendarComponent';
 
 const Committees = () => {
+  const [user, setUser] = useState({ committeeId: null, gradYear: null });
+
+  useEffect(() => {
+    // pull the user object you stored at login
+    const saved = localStorage.getItem('user');
+    if (saved) {
+      try {
+        setUser(JSON.parse(saved));
+      } catch (e) {
+        console.error('Could not parse user from localStorage', e);
+      }
+    }
+  }, []);
+
   return (
     <Layout>
-        <div>
+      <div style={{ padding: '1rem' }}>
         <h1>Committees Page</h1>
-        <p>This is where your Committees will be listed.</p>
-        </div>
+
+        <section style={{ margin: '1rem 0', padding: '1rem', border: '1px solid #ddd' }}>
+          <h2>Your Info</h2>
+          <p>
+            <strong>Committee ID:</strong>{' '}
+            {user.committeeId !== null ? user.committeeId : 'Not set'}
+          </p>
+          <p>
+            <strong>Graduation Year:</strong>{' '}
+            {user.gradYear !== null ? user.gradYear : 'Not set'}
+          </p>
+        </section>
+
+        <section>
+          <p>This is where your Committees will be listed.</p>
+          {/* you can render your list of committees here */}
+        </section>
+
+        {/* if you need a calendar anywhere */}
+        
+      </div>
     </Layout>
   );
 };
 
-export default Committees ;
+export default Committees;

@@ -101,11 +101,11 @@ app.post('/api/login', async (req, res) => {
   const match = await bcrypt.compare(password, user.passwordHash)
   if (!match) return res.status(401).json({ message: 'Invalid credentials' })
   const token = jwt.sign(
-    { sub: user.id, username: user.username },
+    { sub: user.id, username: user.username, committeeId: user.committeeId, gradYear:    user.gradYear},
     JWT_SECRET,
     { expiresIn: '2h' }
   )
-  res.json({ token, user: { id: user.id, username: user.username } })
+  res.json({ token, user: { id: user.id, username: user.username, committeeId: user.committeeId, gradYear:  user.gradYear } })
 })
 
 app.get('/api/profile', (req, res) => {
