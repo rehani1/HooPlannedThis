@@ -138,7 +138,7 @@ export default function RegisterAccount() {
         <span className="brand-text">HooPlannedThis</span>
       </div>
 
-      <div className="card">
+      <div className="register-card">
         <h1>Request an Account</h1>
 
         <form onSubmit={handleSubmit}>
