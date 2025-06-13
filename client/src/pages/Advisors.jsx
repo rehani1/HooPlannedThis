@@ -53,7 +53,7 @@ export default function Advisors() {
         console.log('← advisors:', data);
 
         // data already uses camelCase because the backend aliased columns
-        setAdvisors(data);
+        setAdvisors(Array.isArray(data) ? data : [data]);
       } catch (err) {
         console.error('❌ fetchAdvisors error:', err);
         setError(err.message);
