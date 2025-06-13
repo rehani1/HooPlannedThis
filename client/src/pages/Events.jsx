@@ -66,7 +66,7 @@ export default function Events() {
             )}
             {events.map((evt) => (
               <li
-                key={evt.id}
+                key={evt.event_id}
                 style={{
                   border: "1px solid #e2e2e2",
                   borderRadius: "8px",
@@ -74,7 +74,7 @@ export default function Events() {
                   marginBottom: "12px",
                 }}
               >
-                <h2 style={{ margin: "0 0 4px" }}>{evt.title}</h2>
+                <h2 style={{ margin: "0 0 4px" }}>{evt.name || evt.title}</h2>
                 <small style={{ color: "#666" }}>
                   {new Date(evt.event_date || evt.date || evt.created_at).toLocaleDateString()}
                 </small>
