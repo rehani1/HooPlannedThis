@@ -57,15 +57,15 @@ const styles = {
     alignItems: 'center',
   },
   tagline: { fontSize: 18, color: COLORS.navy, lineHeight: 1.6, marginTop: 18 },
-  card: {
-    background: COLORS.white,
-    borderRadius: 12,
-    padding: 40,
-    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-    border: `1px solid #f1f3f4`,
-    width: '100%',
-    boxSizing: 'border-box',
-  },
+  // card: {
+  //   background: COLORS.white,
+  //   borderRadius: 12,
+  //   padding: 40,
+  //   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+  //   border: `1px solid #f1f3f4`,
+  //   width: '100%',
+  //   boxSizing: 'border-box',
+  // },
   cardTitle: { fontSize: 28, fontWeight: 700, color: COLORS.navy, margin: '0 0 28px', textAlign: 'center' },
   label: { fontSize: 18, fontWeight: 600, color: COLORS.navy, marginBottom: 6, display: 'block', textAlign: 'left' },
   primaryBtn: {
@@ -148,7 +148,7 @@ export default function Login() {
 
         {/* login card */}
         <div style={styles.right}>
-          <div style={styles.card}>
+          <div div className="card">
             <h2 style={styles.cardTitle}>Login</h2>
 
             <label htmlFor="username" style={styles.label}>Username</label>

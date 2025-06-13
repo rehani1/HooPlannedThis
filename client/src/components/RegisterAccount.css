@@ -128,6 +128,19 @@ html, body {
   margin-bottom: 14px;        
 }
 
+.form-row .input-field {
+  margin: 0;
+}
+
+.year-dash {
+  display: flex;
+  align-items: center;     
+  justify-content: center; 
+  height: 44px;            
+  line-height: 44px;
+  font: 18px/1 "Montserrat", sans-serif;
+}
+
 @media (max-width: 640px) {
   .form-row { flex-direction: column; gap: 0; }
   .form-row .form-group { margin-bottom: 12px; }

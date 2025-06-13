@@ -1,12 +1,13 @@
 // ── src/pages/RegisterAccount.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import CalendarIcon from '../components/CalendarIcon';
+import { ArrowLeft } from 'lucide-react';
 import api from '../api';
 import '../components/RegisterAccount.css';
 import '../styles/forms.css';
 
-/* ----- fixed roles ----- */
+/* fixed roles */
 const roleOptions = [
   { value: 'president',       label: 'President' },
   { value: 'vice_president',  label: 'Vice President' },
@@ -44,7 +45,6 @@ export default function RegisterAccount() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  /* ---------- fetch councils once ---------- */
   useEffect(() => {
     (async () => {
       try {
@@ -57,11 +57,9 @@ export default function RegisterAccount() {
     })();
   }, []);
 
-  /* ---------- handlers ---------- */
   const handleChange = e =>
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  /* pick academic year → rebuild committee list */
   const handleYearSelect = e => {
     const academicYear = e.target.value;
     const yearCouncils = councils
@@ -100,9 +98,9 @@ export default function RegisterAccount() {
 
   useEffect(() => {
     if (formData.academicYearStart && formData.academicYearEnd && formData.classId) {
-      const normalize = (str) => str.replace(/–/g, '-').trim();  // ✅ Replace en dash with hyphen
+      const normalize = (str) => str.replace(/–/g, '-').trim();  
       const academicYear = `${normalize(formData.academicYearStart)}-${normalize(formData.academicYearEnd)}`;
-      const gradYear = parseInt(formData.classId, 10);            // ✅ Parse as integer
+      const gradYear = parseInt(formData.classId, 10);            
       
       for (let char of academicYear) {
         console.log(`${char} = ${char.charCodeAt(0)}`);
@@ -129,20 +127,22 @@ export default function RegisterAccount() {
   
   
 
-  /* ---------- JSX ---------- */
   return (
     <div className="register-container">
       {/* brand header */}
       <div className="register-header">
+        <Link to="/login" className="back-arrow" aria-label="Back to login">
+          <ArrowLeft size={24} strokeWidth={2.2} />
+        </Link>
         <CalendarIcon />
         <span className="brand-text">HooPlannedThis</span>
       </div>
 
-      <div className="register-card">
+      <div className="card">
         <h1>Request an Account</h1>
 
         <form onSubmit={handleSubmit}>
-        {/* -------- row 1: first + last name -------- */}
+        {/* row 1: first + last name */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="firstName">First Name</label>
@@ -163,13 +163,13 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* -------- row 2: computing ID + grad year -------- */}
+          {/* row 2: computing ID + grad year */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="username">Computing ID</label>
               <input
                 id="username" name="username" type="text"
-                className="input-field" placeholder="e.g. abc1de"
+                className="input-field" placeholder="e.g., abc1de"
                 value={formData.username} onChange={handleChange} required
               />
             </div>
@@ -178,13 +178,13 @@ export default function RegisterAccount() {
               <label htmlFor="classId">Class Graduation Year</label>
               <input
                 id="classId" name="classId" type="text"
-                className="input-field" placeholder="2027"
+                className="input-field" placeholder="e.g., 2027"
                 value={formData.classId} onChange={handleChange} required
               />
             </div>
           </div>
 
-          {/* -------- row 3: password + uva email -------- */}
+          {/* row 3: password + uva email */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="password">Password</label>
@@ -205,15 +205,15 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* -------- row 4: academic year + role -------- */}
+          {/* row 4: academic year + role */}
           <div className="form-row">
           <div className="form-group">
               <label>Academic Year</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center'}}>
                 <input
                   type="text"
                   name="academicYearStart"
-                  placeholder="e.g. 2025"
+                  placeholder="e.g., 2025"
                   className="input-field"
                   value={formData.academicYearStart || ''}
                   onChange={(e) =>
@@ -225,11 +225,11 @@ export default function RegisterAccount() {
                   }
                   required
                 />
-                <span style={{ alignSelf: 'center' }}>–</span>
+                <span className="year-dash">–</span>
                 <input
                   type="text"
                   name="academicYearEnd"
-                  placeholder="e.g. 2026"
+                  placeholder="e.g., 2026"
                   className="input-field"
                   value={formData.academicYearEnd || ''}
                   onChange={(e) =>
@@ -261,7 +261,7 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* -------- single full‑width row: committee -------- */}
+          {/* single full‑width row: committee */}
           <div className="form-group">
             <label htmlFor="committee">Committee (Council)</label>
             <select

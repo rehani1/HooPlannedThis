@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthContext } from './AuthContext';   // ⬅️ context you created
 import App from './App.jsx';
 import './index.css';
+import './styles/root.css';
 
 function Root() {
 
