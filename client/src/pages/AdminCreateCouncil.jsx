@@ -16,10 +16,10 @@ function Modal({ open, onClose, children }) {
 }
 
 export default function AdminCreateCouncil() {
-  const [advisors, setAdvisors] = useState([
-    { id: 1, name: 'Alice Smith' },
-    { id: 2, name: 'Carmen Nguyen' },
-  ]);
+  // const [advisors, setAdvisors] = useState([
+  //   { id: 1, name: 'Alice Smith' },
+  //   { id: 2, name: 'Carmen Nguyen' },
+    const [advisors, setAdvisors] = useState([]);
 
   const [councils, setCouncils] = useState({
     first:    [],
@@ -40,6 +40,24 @@ export default function AdminCreateCouncil() {
     advisorId:   '',
   });
 
+    // ─── load advisors on mount ────────────────────────────────────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get('/api/advisors');
+        // assume data is [{ id, firstName, lastName, … }, …]
+       setAdvisors(
+          data.map(a => ({
+            id:   a.id,
+            name: `${a.firstName} ${a.lastName}`
+          }))
+        );
+      } catch (err) {
+        console.error('Failed to load advisors:', err);
+      }
+    })();
+  }, []);
+
   // on-mount: load from server
   useEffect(() => {
     (async () => {
@@ -54,8 +72,9 @@ export default function AdminCreateCouncil() {
             advisor_id,
             committees,
           } = row;
-          const advisorName =
-            advisors.find(a => a.id === advisor_id)?.name || '';
+          // const advisorName =
+          //   advisors.find(a => a.id === advisor_id)?.name || '';
+          const advisorName = advisors.find(a => a.id === advisor_id)?.name || '';
           buckets[class_name]?.push({
             id:          `${class_name}-${grad_year}`,
             gradYear:    grad_year,
@@ -259,8 +278,9 @@ export default function AdminCreateCouncil() {
           {advisors.map(a => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
-          <option value="new">＋ Add New Advisor</option>
+          {/* <option value="new">＋ Add New Advisor</option> */}
         </select>
+        
 
         <div style={{ textAlign:'right', marginTop:28 }}>
           <button onClick={()=>setShowCouncilForm(false)} style={s.cancel}>Cancel</button>
