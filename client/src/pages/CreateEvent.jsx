@@ -16,7 +16,7 @@ const CreateEvent = () => {
     venueName: '',
     venueContact: '',
     location: '',
-    committee:'',
+    committeeId:'',
     budget:'',
     description: ''
   });
@@ -258,8 +258,8 @@ const CreateEvent = () => {
             Committee:
             <input
               type="text"
-              name="committee"
-              value={formData.committee}
+              name="committeeId"
+              value={formData.committeeId}
               onChange={handleChange}
               required
               style={{ width: '100%', marginBottom: '12px' }}
