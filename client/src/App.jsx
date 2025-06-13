@@ -14,6 +14,8 @@ import Advisors        from './pages/Advisors';
 import Budget          from './pages/Budget';
 import VolunteerSignUp from './pages/VolunteerSignUp';
 import AdminCreateCouncil from './pages/AdminCreateCouncil';
+import ManageEvents from './pages/ManageEvents';
+
 
 function App() {
   // const [isAuthenticated, setIsAuth] = useState(
@@ -40,6 +42,7 @@ function App() {
         <Route path="/home"               element={isAuthenticated ? <Home />            : <Navigate to="/login" />} />
         <Route path="/events"             element={isAuthenticated ? <Events />          : <Navigate to="/login" />} />
         <Route path="/events/createevent" element={isAuthenticated ? <CreateEvent />     : <Navigate to="/login" />} />
+        <Route path="/events/manage" element={<ManageEvents />} />
         <Route path="/committees"         element={isAuthenticated ? <Committees />      : <Navigate to="/login" />} />
         <Route path="/profile"            element={isAuthenticated ? <Profile />         : <Navigate to="/login" />} />
         <Route path="/classcouncil"       element={isAuthenticated ? <ClassCouncil />    : <Navigate to="/login" />} />

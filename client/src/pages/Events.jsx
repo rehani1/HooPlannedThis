@@ -66,7 +66,7 @@ export default function Events() {
                     </span>
                   )}
                 </div>
-                <Link to={`/events/${evt.event_id}`} style={{
+                <Link to={`/events/manage`} style={{
                   display: 'inline-block',
                   marginTop: '1rem',
                   color: '#ff8937',
