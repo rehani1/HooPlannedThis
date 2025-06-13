@@ -175,6 +175,6 @@ app.get('/api/budget/allocations', async (req, res) => {
 });
 app.use('/api/committees', committeesRouter);
 
-app.use('/api/advisor', advisorsRouter);
+app.use('/api/advisors', advisorsRouter);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
