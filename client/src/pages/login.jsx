@@ -1,11 +1,10 @@
-// Alignment needs to be formatted for Windows (stuck at left alignment)
-
 // src/pages/Login.jsx
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CalendarIcon from '../components/CalendarIcon';
 import { AuthContext } from '../AuthContext';
 import api from '../api';
+import PasswordField from '../components/PasswordField';
 import '../styles/forms.css';          
 
 const COLORS = {
@@ -163,7 +162,7 @@ export default function Login() {
             />
 
             <label htmlFor="password" style={styles.label}>Password</label>
-            <input
+            <PasswordField
               id="password"
               name="password"
               type="password"
