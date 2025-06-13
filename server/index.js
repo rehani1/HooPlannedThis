@@ -6,7 +6,10 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import morgan from 'morgan';
 import { createCouncilYear, getAllCouncilYears } from './models/council.js';
-
+import {
+  getTotalCouncilBudget,
+  getCommitteeBudgets
+} from './models/budget.js';
 
 
 import {
@@ -152,6 +155,25 @@ app.get('/api/events', async (req, res, next) => {
     return next(err);
   }
 });
+app.get('/api/budget/overview', async (req, res) => {
+  try {
+    const budget = await getTotalCouncilBudget();
+    if (!budget) return res.status(404).json({ message: 'No budget found' });
+    res.json(budget);
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+});
 
+app.get('/api/budget/allocations', async (req, res) => {
+  try {
+    const allocations = await getCommitteeBudgets();
+    res.json(allocations);
+  } catch (err) {
+    console.error(err);
+    res.sendStatus(500);
+  }
+});
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
