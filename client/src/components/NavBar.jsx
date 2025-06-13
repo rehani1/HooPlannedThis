@@ -29,7 +29,7 @@ const NavBar = () => {
           <li><Link to="/committees">Committees</Link></li>
           <li><Link to="/events">Events</Link></li>
           <li><Link to="/advisors">Advisors</Link></li>
-          <li><Link to="/budget">Budget</Link></li>
+          {/* <li><Link to="/budget">Budget</Link></li> */}
           <li><Link to="/volunteersignup">Volunteer Sign Up</Link></li>
         </ul>
       </div>

@@ -16,9 +16,13 @@ import VolunteerSignUp from './pages/VolunteerSignUp';
 import AdminCreateCouncil from './pages/AdminCreateCouncil';
 
 function App() {
-  const [isAuthenticated, setIsAuth] = useState(
-    Boolean(localStorage.getItem('token'))
-  );
+  // const [isAuthenticated, setIsAuth] = useState(
+  //   true);
+  //   // Boolean(localStorage.getItem('token')) ;
+
+    const [isAuthenticated, setIsAuth] = useState(
+      Boolean(localStorage.getItem('token'))
+    );
 
   useEffect(() => {
     const cb = () => setIsAuth(Boolean(localStorage.getItem('token')));
