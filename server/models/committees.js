@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
 
   try {
 
-    const rows = await pool.query(
+    const [rows] = await pool.query(
       `SELECT committee_name
          FROM Committee
         WHERE academic_year = ?
