@@ -6,10 +6,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import morgan from 'morgan';
 import { createCouncilYear, getAllCouncilYears } from './models/council.js';
-import {
-  getTotalCouncilBudget,
-  getCommitteeBudgets
-} from './models/budget.js';
+
 import committeesRouter from './models/committees.js';
 
 
