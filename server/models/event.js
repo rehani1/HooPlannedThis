@@ -1,97 +1,112 @@
-import pool from '../db.js'
-import { promisify } from 'util'
 
+import pool from '../db.js';
+import { promisify } from 'util';
 
+/* ------------------------------------------------------------------ */
+/*  CREATE EVENT (with optional supplies & vendor rows)               */
+/* ------------------------------------------------------------------ */
 export async function createEvent(data) {
-  const conn  = await pool.getConnection()
-  const query = promisify(conn.query).bind(conn)
+  const conn  = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
 
   try {
-    await conn.beginTransaction()
+    await conn.beginTransaction();
 
+    /* 1 ▸ insert into Event -------------------------------------- */
     const result = await query(
       `INSERT INTO Event
-         (title, committee, event_date, start_time, end_time,
-          venue_name, venue_contact, venue_address,
-          latitude, longitude, budget, description)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+         (name,            event_date, event_time,
+          description,     budget_allocated,
+          committee_id,    location_id)
+       VALUES (?,?,?,?,?,?,?)`,
       [
-        data.title, data.committee, data.date,
-        data.startTime, data.endTime,
-        data.venueName, data.venueContact, data.location,
-        data.locationCoordinates?.latitude ?? null,
-        data.locationCoordinates?.longitude ?? null,
-        data.budget ?? 0, data.description ?? null
+        data.title,                        // name
+        data.date,                         // event_date  ('YYYY-MM-DD')
+        data.startTime,                    // event_time  ('HH:MM:SS')
+        data.description ?? null,          // description
+        data.budget        ?? 0,           // budget_allocated
+        data.committeeId,                  // FK → Committee
+        data.locationId     ?? null        // FK → Location (nullable)
       ]
-    )
-    const eventId = result.insertId
+    );
+    const eventId = result.insertId;
 
-
+    /* 2 ▸ loop through supplies ---------------------------------- */
     for (const s of data.supplies ?? []) {
-      let vendorId = null
-      if (s.vendor) {
-        const vr = await query(
+      /* 2a ▸ ensure Vendor row exists (or update contact info) ---- */
+      if (s.vendor?.company) {
+        await query(
           `INSERT INTO Vendor
-             (company, contact_name, contact_address,
-              contact_email, contact_phone, notes)
-           VALUES (?,?,?,?,?,?)`,
+             (company_name,  contact_name, contact_address,
+              contact_email, contact_phone)
+           VALUES (?,?,?,?,?)
+           ON DUPLICATE KEY UPDATE
+             contact_name    = VALUES(contact_name),
+             contact_address = VALUES(contact_address),
+             contact_email   = VALUES(contact_email),
+             contact_phone   = VALUES(contact_phone)`,
           [
             s.vendor.company,
-            s.vendor.contact_name,
-            s.vendor.contact_address,
-            s.vendor.contact_email,
-            s.vendor.contact_phone,
-            s.vendor.notes
+            s.vendor.contact_name    ?? null,
+            s.vendor.contact_address ?? null,
+            s.vendor.contact_email   ?? null,
+            s.vendor.contact_phone   ?? null
           ]
-        )
-        vendorId = vr.insertId
+        );
       }
 
+      /* 2b ▸ insert Supply row ----------------------------------- */
       await query(
         `INSERT INTO Supply
-           (event_id, name, quantity, unit_cost, total_cost,
-            notes, link, reusable, return_needed, vendor_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?)`,
+           (event_id, company_name,
+            name, stock_qty, cost,
+            description, link,
+            reusable, return_needed)
+         VALUES (?,?,?,?,?,?,?,?,?)`,
         [
           eventId,
+          s.vendor?.company           ?? null,  // FK string to Vendor (nullable)
+
           s.name,
-          s.quantity,
-          s.unitCost,
-          s.totalCost,
-          s.notes,
-          s.link,
-          s.reusable ? 1 : 0,
-          s.return_needed ? 1 : 0,
-          vendorId
+          s.quantity                  ?? 1,     // stock_qty
+          s.unitCost                  ?? 0,     // cost
+          s.description               ?? null,
+          s.link                      ?? null,
+          s.reusable        ? 1 : 0,
+          s.return_needed    ? 1 : 0
         ]
-      )
+      );
     }
 
-    await conn.commit()
-    return eventId
+    await conn.commit();
+    return eventId;
 
   } catch (err) {
-    await conn.rollback()
-    throw err
+    await conn.rollback();
+    throw err;
   } finally {
-    conn.release()
+    conn.release();
   }
 }
-export async function getEvents(limit = 3, order = 'DESC') {
-  const conn  = await pool.getConnection()
-  const query = promisify(conn.query).bind(conn)
+
+/* ------------------------------------------------------------------ */
+/*  GET most-recent events                                            */
+/* ------------------------------------------------------------------ */
+export async function getEvents(limit = 3) {
+  const conn  = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
 
   try {
     const rows = await query(
       `SELECT *
-       FROM Event
-       ORDER BY event_date ${order}
-       LIMIT ?`,
+         FROM Event
+        ORDER BY event_date DESC, event_time DESC    /* newest first */
+        LIMIT ?`,
       [limit]
-    )
+    );
+    return rows;
 
-    return rows
   } finally {
-    conn.release()
+    conn.release();
   }
 }
