@@ -1,5 +1,5 @@
 import express from 'express';
-import pool from '../db.js';
+import pool    from '../db.js';
 
 const router = express.Router();
 
@@ -26,6 +26,8 @@ router.get('/', async (_req, res) => {
 
 // POST a new advisor
 router.post('/', async (req, res) => {
+  console.log('⏳ POST /api/advisors body →', req.body);
+
   const {
     advisor_first_name,
     advisor_last_name,
@@ -35,9 +37,8 @@ router.post('/', async (req, res) => {
     advisor_number
   } = req.body;
 
-  // Validate required fields
   if (!advisor_first_name || !advisor_last_name) {
-    return res.status(400).json({ message: 'First and last name are required' });
+    return res.status(400).json({ message: 'First and last name required' });
   }
 
   try {
@@ -56,10 +57,10 @@ router.post('/', async (req, res) => {
         advisor_number || null
       ]
     );
-    // Return the newly created advisor ID
+    console.log('✅ Inserted advisor id:', result.insertId);
     res.status(201).json({ id: result.insertId });
   } catch (err) {
-    console.error('Error inserting advisor:', err);
+    console.error('❌ Advisor insert error:', err);
     res.status(500).json({ message: 'Failed to create advisor' });
   }
 });
