@@ -3,6 +3,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import NavBar from './NavBar';
 import CalendarIcon from './CalendarIcon';
+import { ArrowLeft } from 'lucide-react';
 import './Layout.css';
 
 const Layout = ({ children }) => {
@@ -18,6 +19,11 @@ const Layout = ({ children }) => {
   return (
     <div className="layout-wrapper">
       <header className="top-header">
+        {location.pathname === '/register' && (
+          <Link to="/login" className="back-arrow" aria-label="Back to login">
+            <ArrowLeft size={24} strokeWidth={2.2} />
+          </Link>
+        )}
         <Link to="/home" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="logo-with-icon">
                 <CalendarIcon />
