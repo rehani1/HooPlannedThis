@@ -93,7 +93,7 @@ export default function AdminCreateCouncil() {
   const saveCouncil = async () => {
     const payload = {
       gradYear:      Number(form.gradYear),
-      academicYear:  `${form.yearFrom}-${form.yearTo}`,
+      academicYear:  `${form.yearFrom}-${form.yearTo}`.replace('–', '-'),
       className:     form.councilType,        // “first”/“second”/…
       advisorId:     Number(form.advisorId) || null,
       committees:    form.committees.filter(Boolean),
@@ -226,7 +226,7 @@ export default function AdminCreateCouncil() {
         <label style={s.label}>Academic Year</label>
         <div style={s.yearRow}>
           <input name="yearFrom" type="number" value={form.yearFrom} onChange={handleChange} style={s.yearInput}/>
-          <span style={s.dash}>–</span>
+          <span style={s.dash}>-</span>
           <input name="yearTo"   type="number" value={form.yearTo}   onChange={handleChange} style={s.yearInput}/>
         </div>
 
