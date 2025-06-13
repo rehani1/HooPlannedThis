@@ -192,7 +192,7 @@ export default function AdminCreateCouncil() {
 
       <div style={{ marginTop: 48, textAlign: 'center' }}>
         <h2 style={{ ...s.tableTitle, marginBottom: 16 }}>Admin Add Advisor</h2>
-        <button
+        {/* <button
           style={{ 
             padding: '10px 20px',
             backgroundColor: '#4b77d1',
@@ -205,7 +205,7 @@ export default function AdminCreateCouncil() {
           onClick={() => setShowAdvisorModal(true)}
         >
           + Add New Advisor
-        </button>
+        </button> */}
       </div>
 
       <Modal open={showCouncilForm} onClose={()=>setShowCouncilForm(false)}>
