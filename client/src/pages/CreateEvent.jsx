@@ -24,16 +24,8 @@ export default function CreateEvent() {
     region: '',
     postcode: '',
     latitude: '',
-    longitude: ''
-  });
-
-  // Vendor
-  const [vendor, setVendor] = useState({
-    companyName: '',
-    contactName: '',
-    contactAddress: '',
-    contactEmail: '',
-    contactPhone: ''
+    longitude: '',
+    venueEmail: ''
   });
 
   const handleEventChange = e => {
@@ -43,11 +35,6 @@ export default function CreateEvent() {
 
   const handleLocationNameChange = e => {
     setLocation(prev => ({ ...prev, locationName: e.target.value }));
-  };
-
-  const handleVendorChange = e => {
-    const { name, value } = e.target;
-    setVendor(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async e => {
@@ -63,29 +50,19 @@ export default function CreateEvent() {
       committeeId: parseInt(event.committeeId, 10),
 
       // Location
-      locationName: location.locationName,
+      locationName: location.streetAndNumber,
       locationAddress: location.streetAndNumber,
       city: location.place,
       state: location.region,
       zipcode: location.postcode,
-      venueEmail: null,
+      venueEmail:     location.venueEmail || null,
       latitude: location.latitude || null,
       longitude: location.longitude || null,
 
       // Supplies (if any)
-      supplies: [],
-
-      // Vendor
-      vendor: {
-        company: vendor.companyName,
-        contact_name: vendor.contactName || null,
-        contact_address: vendor.contactAddress || null,
-        contact_email: vendor.contactEmail || null,
-        contact_phone: vendor.contactPhone || null
-      }
+      supplies: []
     };
 
-    // DEBUG: inspect exactly what we're sending
     console.log('🛰️ Payload →', JSON.stringify(payload, null, 2));
 
     try {
@@ -192,60 +169,18 @@ export default function CreateEvent() {
           />
         </label>
         <AddressForm address={location} setAddress={setLocation} />
-
-        <h1>Vendor</h1>
         <label>
-          Company Name *:
-          <input
-            type="text"
-            name="companyName"
-            value={vendor.companyName}
-            onChange={handleVendorChange}
-            required
-            style={{ width: '100%', marginBottom: 12 }}
-          />
-        </label>
-        <label>
-          Contact Name:
-          <input
-            type="text"
-            name="contactName"
-            value={vendor.contactName}
-            onChange={handleVendorChange}
-            style={{ width: '100%', marginBottom: 12 }}
-          />
-        </label>
-        <label>
-          Contact Address:
-          <input
-            type="text"
-            name="contactAddress"
-            value={vendor.contactAddress}
-            onChange={handleVendorChange}
-            style={{ width: '100%', marginBottom: 12 }}
-          />
-        </label>
-        <label>
-          Contact Email:
-          <input
-            type="email"
-            name="contactEmail"
-            value={vendor.contactEmail}
-            onChange={handleVendorChange}
-            style={{ width: '100%', marginBottom: 12 }}
-          />
-        </label>
-        <label>
-          Contact Phone:
-          <input
-            type="tel"
-            name="contactPhone"
-            value={vendor.contactPhone}
-            onChange={handleVendorChange}
-            style={{ width: '100%', marginBottom: 24 }}
-          />
-        </label>
-
+  Venue Email:
+  <input
+    type="email"
+    name="venueEmail"
+    value={location.venueEmail}
+    onChange={e =>
+      setLocation(prev => ({ ...prev, venueEmail: e.target.value }))
+    }
+    style={{ width: '100%', marginBottom: 24 }}
+  />
+</label>
         <button
           type="submit"
           style={{
@@ -254,10 +189,11 @@ export default function CreateEvent() {
             padding: '10px 20px',
             borderRadius: 6,
             border: 'none',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            marginTop: 24
           }}
         >
-          Create Event + Location + Vendor
+          Create Event + Location
         </button>
       </form>
     </Layout>
