@@ -108,6 +108,7 @@ html, body {
   text-decoration: none;
   transition: transform .15s ease;
 }
+
 .back-arrow:hover { transform: translateX(-2px); }
 
 .register-card .error-message {
