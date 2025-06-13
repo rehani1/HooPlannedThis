@@ -66,7 +66,7 @@ export default function PasswordField({
   const eyeColour = showPassword ? COLORS.navy : COLORS.gray;
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: 44, margin: '6px 0 20px'}}>
+    <div style={{ position: 'relative', width: '100%', height: 44, margin: '0px 0 20px'}}>
       <input
         {...rest}
         type="text"                         

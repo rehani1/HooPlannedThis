@@ -67,7 +67,7 @@ const styles = {
   //   boxSizing: 'border-box',
   // },
   cardTitle: { fontSize: 28, fontWeight: 700, color: COLORS.navy, margin: '0 0 28px', textAlign: 'center' },
-  label: { fontSize: 18, fontWeight: 600, color: COLORS.navy, marginBottom: 6, display: 'block', textAlign: 'left' },
+  label: { fontSize: 18, fontWeight: 600, color: COLORS.navy, marginBottom: 12, display: 'block', textAlign: 'left' },
   primaryBtn: {
     width: '100%',
     maxWidth: 536,
