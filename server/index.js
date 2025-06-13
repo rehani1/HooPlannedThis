@@ -10,6 +10,7 @@ import {
   getTotalCouncilBudget,
   getCommitteeBudgets
 } from './models/budget.js';
+import committeesRouter from './routes/committees.js';
 
 
 import {
@@ -175,5 +176,6 @@ app.get('/api/budget/allocations', async (req, res) => {
     res.sendStatus(500);
   }
 });
+app.use('/api/committees', committeesRouter);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))

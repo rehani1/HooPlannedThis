@@ -18,118 +18,78 @@ const roleOptions = [
 ];
 
 export default function RegisterAccount() {
-  /* councils arrive from admin page */
-  const [councils, setCouncils]           = useState([]);
-  const [academicYears, setAcademicYears] = useState([]);
+  /* ---------------------------------------------------------- */
+  /*  form + ui state                                           */
+  /* ---------------------------------------------------------- */
   const [committeeOptions, setCommitteeOptions] = useState([]);
-
-  // /* form model */
-  // const [formData, setFormData] = useState({
-  //   firstName:'', lastName:'', email:'', classId:'',
-  //   username:'', password:'',
-  //   academicYear:'',       // chosen year
-  //   role:'',                // chosen role
-  //   committee:'',           // chosen committee (or exec)
-  // });
-
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', email: '', classId: '',
+    firstName: '', lastName: '', email: '',
     username: '', password: '',
-    academicYear: '',            // full display value e.g. "2025-2026"
-    academicYearStart: '',       // year part 1
-    academicYearEnd: '',         // year part 2
+    classId: '',                 // graduation year
+    academicYearStart: '',       // e.g. 2025
+    academicYearEnd:   '',       // e.g. 2026
     role: '', committee: ''
   });
-  
-
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get('/api/councils'); // [{ id,councilType,acadYear,committees }]
-        setCouncils(data);
-        setAcademicYears([...new Set(data.map(c => c.acadYear))].sort());
-      } catch (err) {
-        console.error('GET /api/councils failed', err);
-      }
-    })();
-  }, []);
+  /* ---------------------------------------------------------- */
+  /*  derived academicYear value                                */
+  /* ---------------------------------------------------------- */
+  const academicYear =
+    formData.academicYearStart && formData.academicYearEnd
+      ? `${formData.academicYearStart.trim()}-${formData.academicYearEnd.trim()}`
+      : '';
 
+  /* ---------------------------------------------------------- */
+  /*  fetch committees when academicYear & gradYear ready       */
+  /* ---------------------------------------------------------- */
+  useEffect(() => {
+    if (!academicYear || !formData.classId) {
+      setCommitteeOptions([]);
+      return;
+    }
+
+    const fetchCommittees = async () => {
+      try {
+        const { data } = await api.get('/api/committees', {
+          params: { academicYear, gradYear: formData.classId }
+        });
+        setCommitteeOptions([
+          'Not in Committee – Pres / VP / Treas / Exec',
+          ...data.map(c => c.committee_name ?? c)
+        ]);
+      } catch (err) {
+        console.error('Failed to fetch committees', err);
+        setCommitteeOptions([]);
+      }
+    };
+
+    fetchCommittees();
+  }, [academicYear, formData.classId]);
+
+  /* ---------------------------------------------------------- */
+  /*  handlers                                                  */
+  /* ---------------------------------------------------------- */
   const handleChange = e =>
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const handleYearSelect = e => {
-    const academicYear = e.target.value;
-    const yearCouncils = councils
-      .filter(c => c.acadYear === academicYear)
-      .map(c => c.councilType.replace(/\b\w/g,l=>l.toUpperCase()));
-
-    setCommitteeOptions([
-      'Not in Committee – Pres / VP / Treas / Exec',
-      ...yearCouncils,
-    ]);
-
-    setFormData(p => ({
-      ...p,
-      academicYear,
-      committee: '',           // reset until user picks
-    }));
-  };
-
-  /* submit registration */
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/api/register', formData); // adjust endpoint payload as needed
+      await api.post('/api/register', { ...formData, academicYear });
       navigate('/login');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     }
   };
 
-
-  
-
-  const academicYear = `${formData.academicYearStart}-${formData.academicYearEnd}`; // NOT ’–’
-
-
-  useEffect(() => {
-    if (formData.academicYearStart && formData.academicYearEnd && formData.classId) {
-      const normalize = (str) => str.replace(/–/g, '-').trim();  
-      const academicYear = `${normalize(formData.academicYearStart)}-${normalize(formData.academicYearEnd)}`;
-      const gradYear = parseInt(formData.classId, 10);            
-      
-      for (let char of academicYear) {
-        console.log(`${char} = ${char.charCodeAt(0)}`);
-      }
-      
-      const fetchCommittees = async () => {
-        try {
-          console.log('📤 GET /api/committees', { academicYear, gradYear }); // debug log
-          const { data } = await api.get('/api/committees', {
-            params: { academicYear, gradYear }
-          });
-          setCommitteeOptions([
-            'Not in Committee – Pres / VP / Treas / Exec',
-            ...data
-          ]);
-        } catch (err) {
-          console.error('❌ Failed to fetch committees', err);
-        }
-      };
-  
-      fetchCommittees();
-    }
-  }, [formData.academicYearStart, formData.academicYearEnd, formData.classId]);
-  
-  
-
+  /* ---------------------------------------------------------- */
+  /*  JSX                                                       */
+  /* ---------------------------------------------------------- */
   return (
     <div className="register-container">
-      {/* brand header */}
       <div className="register-header">
         <Link to="/login" className="back-arrow" aria-label="Back to login">
           <ArrowLeft size={24} strokeWidth={2.2} />
@@ -142,7 +102,7 @@ export default function RegisterAccount() {
         <h1>Request an Account</h1>
 
         <form onSubmit={handleSubmit}>
-        {/* row 1: first + last name */}
+          {/* ---- Row 1: name ---- */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="firstName">First Name</label>
@@ -152,7 +112,6 @@ export default function RegisterAccount() {
                 value={formData.firstName} onChange={handleChange} required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="lastName">Last Name</label>
               <input
@@ -163,17 +122,16 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* row 2: computing ID + grad year */}
+          {/* ---- Row 2: computing ID + grad year ---- */}
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="username">Computing ID</label>
+              <label htmlFor="username">Computing ID</label>
               <input
                 id="username" name="username" type="text"
                 className="input-field" placeholder="e.g., abc1de"
                 value={formData.username} onChange={handleChange} required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="classId">Class Graduation Year</label>
               <input
@@ -184,7 +142,7 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* row 3: password + uva email */}
+          {/* ---- Row 3: password + email ---- */}
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="password">Password</label>
@@ -194,7 +152,6 @@ export default function RegisterAccount() {
                 value={formData.password} onChange={handleChange} required
               />
             </div>
-
             <div className="form-group">
               <label htmlFor="email">UVA Email</label>
               <input
@@ -205,9 +162,9 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* row 4: academic year + role */}
+          {/* ---- Row 4: academic year + role ---- */}
           <div className="form-row">
-          <div className="form-group">
+            <div className="form-group">
               <label>Academic Year</label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center'}}>
                 <input
@@ -215,14 +172,8 @@ export default function RegisterAccount() {
                   name="academicYearStart"
                   placeholder="e.g., 2025"
                   className="input-field"
-                  value={formData.academicYearStart || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      academicYearStart: e.target.value,
-                      academicYear: `${e.target.value}-${prev.academicYearEnd || ''}`
-                    }))
-                  }
+                  value={formData.academicYearStart}
+                  onChange={handleChange}
                   required
                 />
                 <span className="year-dash">–</span>
@@ -231,20 +182,12 @@ export default function RegisterAccount() {
                   name="academicYearEnd"
                   placeholder="e.g., 2026"
                   className="input-field"
-                  value={formData.academicYearEnd || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      academicYearEnd: e.target.value,
-                      academicYear: `${prev.academicYearStart || ''} - ${e.target.value}`
-                    }))
-                  }
+                  value={formData.academicYearEnd}
+                  onChange={handleChange}
                   required
                 />
               </div>
             </div>
-
-
             <div className="form-group">
               <label htmlFor="role">Role</label>
               <select
@@ -261,7 +204,7 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* single full‑width row: committee */}
+          {/* ---- Committee dropdown ---- */}
           <div className="form-group">
             <label htmlFor="committee">Committee (Council)</label>
             <select
@@ -269,7 +212,7 @@ export default function RegisterAccount() {
               className="input-field"
               value={formData.committee}
               onChange={handleChange}
-              disabled={!formData.academicYearStart || !formData.academicYearEnd}
+              disabled={!academicYear || !formData.classId}
               required
             >
               <option value="" disabled>Select committee…</option>
@@ -281,8 +224,7 @@ export default function RegisterAccount() {
 
           <button type="submit">Register</button>
           {error && <p className="error-message">{error}</p>}
-      </form>
-
+        </form>
       </div>
     </div>
   );

@@ -13,13 +13,6 @@ const TRANSACTIONS = [
   { date: '4/12/2026', committee: 'Wellness', description: 'Speaker', amount: '$750.00', type: 'Expense' },
   { date: '4/11/2026', committee: 'DEI', description: 'Equipment', amount: '$610.00', type: 'Expense' },
   { date: '4/10/2026', committee: 'Career', description: 'Catering', amount: '$350.00', type: 'Expense' },
-  { date: '4/10/2026', committee: 'Reels', description: 'Software', amount: '$60.00', type: 'Expense' },
-  { date: '4/09/2026', committee: 'Giving', description: 'Banner', amount: '$100.00', type: 'Expense' },
-  { date: '4/06/2026', committee: 'Reels', description: 'Camera', amount: '$300.00', type: 'Expense' },
-  { date: '4/01/2026', committee: 'Giving', description: 'Ads', amount: '$300.00', type: 'Expense' },
-  { date: '3/29/2026', committee: 'Social', description: 'Decor', amount: '$890.00', type: 'Expense' },
-  { date: '3/29/2026', committee: 'Wellness', description: 'Supplies', amount: '$200.00', type: 'Expense' },
-  { date: '3/27/2026', committee: 'DEI', description: 'Venue', amount: '$1,200.00', type: 'Expense' },
 ];
 
 // Label renderer for pie slices
@@ -89,22 +82,25 @@ export default function Budget() {
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // pagination calculations
   const pages = Math.ceil(TRANSACTIONS.length / rows);
   const slice = TRANSACTIONS.slice((page - 1) * rows, page * rows);
 
   useEffect(() => {
     async function fetchBudget() {
       try {
-        // overview endpoint
-        const ov = await fetch('/api/budget/overview');
+        const API = process.env.VITE_API_URL;
+
+        // fetch overview for chart
+        const ov = await fetch(`${API}/api/budget/overview`);
         const { budget_total, budget_used } = await ov.json();
         setChartData([
           { name: 'Used budget', value: Number(budget_used) },
           { name: 'Unused budget', value: Number(budget_total) - Number(budget_used) },
         ]);
 
-        // allocations endpoint
-        const al = await fetch('/api/budget/allocations');
+        // fetch committee allocations
+        const al = await fetch(`${API}/api/budget/allocations`);
         const data = await al.json();
         setAllocations(data);
       } catch (e) {
@@ -116,6 +112,7 @@ export default function Budget() {
     fetchBudget();
   }, []);
 
+  // show loading state
   if (loading) {
     return (
       <Layout>
@@ -132,7 +129,7 @@ export default function Budget() {
       <h1 className="budget-title">Budget</h1>
       <div className="budget-header-row">
         <div />
-        <button className="btn-primary">Add Funds</button>
+        <button className="btn-primary">Add Funds</button>
       </div>
 
       <div className="budget-grid">

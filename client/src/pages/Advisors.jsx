@@ -79,9 +79,10 @@ export default function Advisors() {
   /* ---------- render ---------- */
   return (
     <Layout>
-      <div style={{ padding:40, maxWidth:900, margin:'0 auto' }}>
-        <h1 style={{ marginBottom:10 }}>Advisors</h1>
-        <button style={styles.newBtn} onClick={()=>setShowForm(true)}>＋ Add New Advisor</button>
+      <div style={{ padding:40, maxWidth:900, margin:'0 auto'}}>
+        <h1 style={{ textAlign: 'center', marginBottom: 10 }}>Advisors</h1>
+
+        
 
         {/* existing two sections */}
         <h2 style={styles.h2}>Advisor for 1st – 3rd Years</h2>
@@ -92,12 +93,11 @@ export default function Advisors() {
 
         {/* dynamically added advisors */}
         <h2 style={styles.h2}>Additional Advisors</h2>
-        {extraAdvisors.length ? extraAdvisors.map(renderCard) : <p>No additional advisors yet.</p>}
       </div>
 
       {/* ---------- form modal ---------- */}
       <Modal open={showForm} onClose={()=>setShowForm(false)}>
-        <h2 style={{ marginTop:0 }}>New Advisor</h2>
+        <h2 style={{ marginTop:0, textAlign:'center' }}>New Advisor</h2>
         <label style={styles.label}>First Name</label>
         <input name="firstName" value={form.firstName} onChange={handleChange} style={styles.input}/>
         <label style={styles.label}>Last Name</label>
