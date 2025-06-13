@@ -1,105 +1,79 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import CalendarComponent from "../components/CalendarComponent";
-import Layout from "../components/Layout";
+/* ── src/pages/Events.jsx ------------------------------------- */
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import Layout from '../components/Layout';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function Events() {
-  const [events, setEvents] = useState([]);
+  const [events, setEvents]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const API_BASE = import.meta.env.VITE_API_URL || "";
+  const [error, setError]     = useState(null);
 
   useEffect(() => {
-    async function fetchEvents() {
-      const url = `${API_BASE}/api/events?limit=3&order=desc`;
-      console.log("👉 Fetching events from:", url);
+    (async () => {
+      const url = `${API_BASE}/api/events?limit=3`;
+      console.log('👉 Fetching events from:', url);
+
       try {
-        const response = await fetch(url, { headers: { Accept: "application/json" } });
-        console.log("← Status:", response.status, response.statusText);
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        console.log('← Status:', res.status, res.statusText);
+        if (!res.ok) throw new Error(`Request failed ${res.status}`);
 
-        if (!response.ok) {
-          throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-        }
-
-        const contentType = response.headers.get("content-type") || "";
-        console.log("← Content-Type:", contentType);
-
-        if (!contentType.includes("application/json")) {
-          const text = await response.text();
-          console.error("← Raw response body:", text);
-          throw new Error(
-            "Backend did not return JSON. First 120 chars: " + text.slice(0, 120)
-          );
-        }
-
-        const data = await response.json();
-        console.log("← Parsed JSON data:", data);
+        const data = await res.json();
+        console.log('← data:', data);
         setEvents(data);
       } catch (err) {
-        console.error("❌ fetchEvents error:", err);
+        console.error('❌ fetchEvents error:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
-    }
-
-    fetchEvents();
-  }, [API_BASE]);
+    })();
+  }, []);
 
   return (
     <Layout>
-      <div style={{ padding: "1rem" }}>
-        <h1 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        
-          Events Page
-        </h1>
+      <div style={{ padding: '1rem' }}>
+        <h1>Events Page</h1>
         <p>Below are your three most recent events.</p>
 
-        {loading && <p>Loading latest events…</p>}
-        {error && <p style={{ color: "crimson" }}>Error: {error}</p>}
+        {loading && <p>Loading…</p>}
+        {error   && <p style={{ color: 'crimson' }}>Error: {error}</p>}
 
         {!loading && !error && (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {events.length === 0 && (
-              <li style={{ marginBottom: "1rem" }}>No recent events found.</li>
-            )}
-            {events.map((evt) => (
-              <li
-                key={evt.event_id}
-                style={{
-                  border: "1px solid #e2e2e2",
-                  borderRadius: "8px",
-                  padding: "16px",
-                  marginBottom: "12px",
-                }}
-              >
-                <h2 style={{ margin: "0 0 4px" }}>{evt.name || evt.title}</h2>
-                <small style={{ color: "#666" }}>
-                  {new Date(evt.event_date || evt.date || evt.created_at).toLocaleDateString()}
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            {events.length === 0 && <li>No recent events found.</li>}
+            {events.map(evt => (
+              <li key={evt.event_id}
+                  style={{
+                    border: '1px solid #e2e2e2',
+                    borderRadius: 8,
+                    padding: 16,
+                    marginBottom: 12,
+                  }}>
+                <h2 style={{ margin: 0 }}>{evt.name}</h2>
+                <small style={{ color: '#666' }}>
+                  {new Date(`${evt.event_date}T${evt.event_time}`)
+                    .toLocaleString()}
                 </small>
-                <p style={{ marginTop: "8px" }}>{evt.description}</p>
+                <p style={{ marginTop: 8 }}>{evt.description}</p>
               </li>
             ))}
           </ul>
         )}
 
-    
-   
-
         <Link to="/events/createevent">
-          <button
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#ff8937",
-              border: "none",
-              color: "white",
-              fontWeight: "bold",
-              borderRadius: "8px",
-              cursor: "pointer",
-              marginTop: "20px",
-            }}
-          >
+          <button style={{
+            padding: '10px 20px',
+            background: '#ff8937',
+            color: '#fff',
+            border: 'none',
+            fontWeight: 700,
+            borderRadius: 8,
+            cursor: 'pointer',
+            marginTop: 20,
+          }}>
             + Create New Event
           </button>
         </Link>

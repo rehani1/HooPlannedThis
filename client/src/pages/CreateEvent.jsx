@@ -64,22 +64,43 @@ const CreateEvent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+  
+    // build payload matching new schema
     const eventData = {
-      ...formData,
-      supplies,
-      locationCoordinates: selectedLocation ? {
-        latitude: selectedLocation.latitude,
-        longitude: selectedLocation.longitude
-      } : null
+      title        : formData.title,            // maps -> Event.name
+      date         : formData.date,             // YYYY-MM-DD
+      startTime    : formData.startTime,        // HH:MM / 24-h
+      description  : formData.description,
+      budget       : parseFloat(formData.budget) || 0,
+      committeeId  : parseInt(formData.committee, 10) || 0,
+      venueName    : formData.venueName,
+      venueContact : formData.venueContact,
+      location     : formData.location,         // street
+      city         : selectedLocation?.city  ?? '',
+      state        : selectedLocation?.state ?? '',
+      zipcode      : selectedLocation?.zipcode ?? '',
+      supplies     : supplies,                  // unchanged
+      locationId   : null,                      // let backend upsert
     };
+  
+    console.log('📦 eventData payload →', eventData);
+  
     try {
-      await api.post('/api/events', eventData);
+      const res = await fetch(`${API_BASE}/api/events`, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify(eventData),
+      });
+  
+      if (!res.ok) throw new Error(`Request failed ${res.status} ${res.statusText}`);
       alert('Event created!');
+      // TODO: redirect
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || 'Failed to create event');
+      console.error('❌ createEvent error', err);
+      alert(err.message || 'Failed to create event');
     }
   };
+
 
   const openLocationPopup = () => {
     setShowLocationPopup(true);
