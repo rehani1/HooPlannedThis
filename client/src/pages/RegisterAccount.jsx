@@ -189,7 +189,7 @@ export default function RegisterAccount() {
             <div className="form-group">
               <label htmlFor="password">Password</label>
               <input
-                id="password" name="password" type="password"
+                id="password" name="password" type="text"
                 className="input-field" placeholder="Enter a password"
                 value={formData.password} onChange={handleChange} required
               />
