@@ -57,7 +57,7 @@ html, body, #root {
   
 
   .layout-container {
-    flex-grow: 1;
+    flex: 1;
     display: flex;
     height: calc(100vh - 60px);
     overflow: hidden;
@@ -66,6 +66,7 @@ html, body, #root {
 
   .NavBar {
     width: 220px;
+    height: 100%;
     background-color: #003366;
     color: white;
     display: flex;
