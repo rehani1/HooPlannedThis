@@ -60,21 +60,20 @@ export default function Home() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     background: '#fff'
                   }}>
-                    <h3 style={{ margin: '0 0 .5rem', color: '#333' }}>
+                    <h3 style={{ margin: '0 0 .5rem', color: '#003366', fontSize: '1.25rem' }}>
                       {evt.name}
                     </h3>
-                    <p style={{ margin:'0 0 .5rem', color:'#666', fontSize:'0.9rem' }}>
-                      <strong>Date:</strong>{' '}
-                      {new Date(evt.event_date)
-                        .toLocaleDateString(undefined,{
-                          weekday:'short',month:'short',day:'numeric',year:'numeric'
-                        })}
+                    <p style={{ margin:'0 0 .5rem', color:'#003366', fontSize:'1rem' }}>
+                    <strong>Date:</strong>{' '}
+                      {new Date(evt.event_date).toLocaleDateString(undefined, {
+                        weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+                      })}
                     </p>
-                    <p style={{ margin:'0 0 .5rem', color:'#666', fontSize:'0.9rem' }}>
+                    <p style={{ margin:'0 0 .5rem', color:'#003366', fontSize:'1rem' }}>
                       <strong>Time:</strong>{' '}
                       {evt.event_time.slice(0,5)}
                     </p>
-                    <p style={{ margin:'0 0 1rem', color:'#444' }}>
+                    <p style={{ margin:'0 0 1rem', color:'#003366', fontSize:'1rem' }}>
                       {evt.description}
                     </p>
                     {/* <Link to={`/events/manage/${evt.event_id}`} style={{

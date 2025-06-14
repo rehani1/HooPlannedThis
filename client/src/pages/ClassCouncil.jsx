@@ -60,12 +60,13 @@ const th = {
   fontWeight: 600,
   padding: '8px 6px',
   borderBottom: '1px solid #eee',
-  color: '#ff8937'
+  color: '#003366'
 };
 
 const td = {
   padding: '8px 6px',
-  borderBottom: '1px solid #eee'
+  borderBottom: '1px solid #eee',
+  color: '#003366'
 };
 
 function CommitteeCard({ committee }) {
@@ -76,7 +77,7 @@ function CommitteeCard({ committee }) {
 
   return (
     <div style={card}>
-      <h2 style={{ margin: 0, marginBottom: 12, textAlign: 'center' }}>
+      <h2 style={{ margin: 0, marginBottom: 12, textAlign: 'center', color: '#003366'}}>
         {committee.name}
       </h2>
       <div style={{ overflowX: 'auto' }}>
@@ -104,12 +105,12 @@ export default function ClassCouncil() {
 
   return (
     <Layout>
-      <h1 style={{ fontWeight: 700, fontSize: 32, marginBottom: 24, textAlign: 'center' }}>
+      <h1 style={{ fontWeight: 700, fontSize: 32, marginBottom: 24, textAlign: 'left', color: '#003366' }}>
         Class Council 2025 – 2026
       </h1>
 
       {/* Budget Navigation Button */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 30 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 30 }}>
         <button
           onClick={() => navigate('/budget')}
           style={{
@@ -127,9 +128,9 @@ export default function ClassCouncil() {
       </div>
 
       {/* Executive Board */}
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
         <div style={{ ...card, width: '100%', maxWidth: 700 }}>
-          <h2 style={{ margin: 0, marginBottom: 12, textAlign: 'center' }}>
+          <h2 style={{ margin: 0, marginBottom: 12, textAlign: 'center', color: '#003366' }}>
             Executive Board
           </h2>
           <div style={{ overflowX: 'auto' }}>
@@ -158,7 +159,7 @@ export default function ClassCouncil() {
       </div>
 
       {/* Committee Cards in 2-column layout */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', marginTop: 40 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start', marginTop: 40 }}>
         {COMMITTEES.map(c => (
           <CommitteeCard key={c.name} committee={c} />
         ))}
