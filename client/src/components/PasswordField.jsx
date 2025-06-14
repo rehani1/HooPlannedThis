@@ -2,10 +2,10 @@ import React, { useState, useRef } from 'react';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/solid';
 
 const BULLET     = '\u2022';
-const REVEAL_MS  = 500;           // how long the last char stays visible (ms)
+const REVEAL_MS  = 500;           
 const COLORS = {
-  navy: '#003e83',           // eye colour when password is visible
-  gray: '#8f98a3',           // eye colour when password is hidden
+  navy: '#003e83',           
+  gray: '#8f98a3',           
 };
 
 export default function PasswordField({
@@ -14,9 +14,9 @@ export default function PasswordField({
   className = '',
   ...rest
 }) {
-  const [raw,          setRaw]          = useState(value); // real password
-  const [showPassword, setShowPassword] = useState(false); // eye toggle
-  const [revealIndex,  setRevealIndex]  = useState(-1);    // temp reveal
+  const [raw,          setRaw]          = useState(value); 
+  const [showPassword, setShowPassword] = useState(false); 
+  const [revealIndex,  setRevealIndex]  = useState(-1);    
   const timerRef = useRef(null);
 
   const propagate = v => onChange?.({ target: { value: v } });

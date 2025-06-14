@@ -13,14 +13,14 @@ export default function Advisors() {
   useEffect(() => {
     async function fetchAdvisors() {
       const url = `${API_BASE}/api/advisors`;
-      console.log('👉 Fetching advisors from:', url);
+      console.log(' Fetching advisors from:', url);
       try {
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
         if (!res.ok) throw new Error(`Request failed ${res.status}`);
         const data = await res.json();
         setAdvisors(Array.isArray(data) ? data : [data]);
       } catch (err) {
-        console.error('❌ fetchAdvisors error:', err);
+        console.error('fetchAdvisors error:', err);
         setError(err.message);
       } finally {
         setLoading(false);

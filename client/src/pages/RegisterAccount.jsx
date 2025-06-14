@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import '../components/RegisterAccount.css';
 import '../styles/forms.css';
 
-/* ----------------  constants  ---------------- */
+
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const roleOptions = [
@@ -18,7 +18,7 @@ const roleOptions = [
   { value: 'general_body',    label: 'General Body Member' },
 ];
 
-/* ----------------  component  ---------------- */
+
 export default function RegisterAccount() {
   const [committeeOptions, setCommitteeOptions] = useState([]);
   const [formData, setFormData] = useState({
@@ -30,7 +30,7 @@ export default function RegisterAccount() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  /* derived values */
+  
   const academicYear =
     formData.academicYearStart && formData.academicYearEnd
       ? `${formData.academicYearStart.trim()}-${formData.academicYearEnd.trim()}`
@@ -40,7 +40,7 @@ export default function RegisterAccount() {
     /^\d{4}$/.test(formData.academicYearStart.trim()) &&
     /^\d{4}$/.test(formData.academicYearEnd.trim());
 
-  /* ----------------  fetch committees  ---------------- */
+  
   useEffect(() => {
     if (!hasFullYears || !formData.classId.trim()) {
       setCommitteeOptions([]);
@@ -52,10 +52,10 @@ export default function RegisterAccount() {
                   `?academicYear=${encodeURIComponent(academicYear)}` +
                   `&gradYear=${encodeURIComponent(formData.classId.trim())}`;
 
-      console.log('👉 Fetching committees from:', url);
+      console.log(' Fetching committees from:', url);
       try {
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        console.log('← Status:', res.status, res.statusText);
+        console.log(' Status:', res.status, res.statusText);
         if (!res.ok) throw new Error(`Request failed ${res.status}`);
 
         const data = await res.json();
@@ -69,7 +69,7 @@ export default function RegisterAccount() {
           ...list.map(c => c.committee_name ?? c)
         ]);
       } catch (err) {
-        console.error('❌ fetchCommittees error:', err);
+        console.error(' fetchCommittees error:', err);
         setCommitteeOptions([]);
       }
     }
@@ -77,7 +77,7 @@ export default function RegisterAccount() {
     fetchCommittees();
   }, [academicYear, formData.classId, hasFullYears]);
 
-  /* ----------------  handlers  ---------------- */
+  
   const handleChange = e =>
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -100,7 +100,7 @@ export default function RegisterAccount() {
     }
   };
 
-  /* ----------------  JSX  ---------------- */
+  
   return (
     <div className="register-container">
       <div className="register-header">
@@ -115,7 +115,7 @@ export default function RegisterAccount() {
         <h1>Request an Account</h1>
 
         <form onSubmit={handleSubmit}>
-          {/* ---- Row 1: first + last ---- */}
+          
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="firstName">First Name</label>
@@ -135,7 +135,7 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* ---- Row 2: computing ID + grad year ---- */}
+          
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="username">Computing ID</label>
@@ -155,7 +155,7 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* ---- Row 3: password + email ---- */}
+          
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="password">Password</label>
@@ -175,7 +175,7 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* ---- Row 4: academic year + role ---- */}
+          
           <div className="form-row">
             <div className="form-group">
               <label>Academic Year</label>
@@ -215,7 +215,7 @@ export default function RegisterAccount() {
             </div>
           </div>
 
-          {/* ---- Committee dropdown ---- */}
+          
           <div className="form-group">
             <label htmlFor="committee">Committee (Council)</label>
             <select

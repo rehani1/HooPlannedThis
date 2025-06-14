@@ -37,10 +37,10 @@ const Committees = () => {
 
         <section>
           <p>This is where your Committees will be listed.</p>
-          {/* you can render your list of committees here */}
+          
         </section>
 
-        {/* if you need a calendar anywhere */}
+        
         
       </div>
     </Layout>

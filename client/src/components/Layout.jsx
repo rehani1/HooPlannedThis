@@ -13,7 +13,7 @@ const Layout = ({ children }) => {
   
   const isFullWidth = fullWidthPages.includes(location.pathname);
   
-  // Determine the CSS class for page-content
+  
   const pageContentClass = isFullWidth ? 'page-content full-width' : 'page-content with-padding';
 
   return (

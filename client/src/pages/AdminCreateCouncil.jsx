@@ -44,12 +44,12 @@ export default function AdminCreateCouncil() {
     advisorId:   '',
   });
 
-    // ─── load advisors on mount ────────────────────────────────────────
+    
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.get('/api/advisors');
-        // assume data is [{ id, firstName, lastName, … }, …]
+        
        setAdvisors(
           data.map(a => ({
             id:   a.id,
@@ -62,7 +62,7 @@ export default function AdminCreateCouncil() {
     })();
   }, []);
 
-  // on-mount: load from server
+  
   useEffect(() => {
     (async () => {
       try {
@@ -83,7 +83,7 @@ export default function AdminCreateCouncil() {
             id:          `${class_name}-${grad_year}`,
             gradYear:    grad_year,
             acadYear:    academic_year,
-            committees,                  // <-- pull in your array!
+            committees,                  
             advisorName,
           });
         });
@@ -125,7 +125,7 @@ export default function AdminCreateCouncil() {
     try {
       await api.post('/api/councils', payload);
 
-      // append to our UI state
+      
       const advisorName =
         advisors.find(a => a.id === payload.advisorId)?.name || '';
       setCouncils(c => ({
@@ -301,9 +301,7 @@ export default function AdminCreateCouncil() {
   );
 }
 
-// … (styles omitted for brevity)
 
-/* ---------- styles ---------- */
 const s = {
   h1:{ textAlign:'center', margin:'24px 0 8px', fontSize:40, fontWeight:700 },
   createBtn:{ background:'#a45614', color:'#fff', border:'none', padding:'12px 24px', fontSize:18, cursor:'pointer', borderRadius:6 },
@@ -325,7 +323,7 @@ const s = {
   save:{ padding:'10px 24px', border:'none', background:'#ff8937', color:'#fff', cursor:'pointer', borderRadius:6 },
 };
 
-/* modal skins */
+
 const modalBackdrop = { position:'fixed', inset:0, background:'rgba(0,0,0,.45)', zIndex:1000 };
 const modalBox = { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
                    background:'#fff', padding:28, borderRadius:10, width:460,

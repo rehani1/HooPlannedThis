@@ -10,7 +10,7 @@ export default function ManageEvents() {
   const [showForm, setShowForm] = useState({});// { [eventId]: bool }
   const [form, setForm] = useState({});        // { [eventId]: itemData }
 
-  // Load events + for each, load items
+  
   useEffect(() => {
     fetch(`${API_BASE}/api/events`)
       .then(r => r.json())
