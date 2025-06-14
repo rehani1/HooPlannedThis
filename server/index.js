@@ -10,6 +10,8 @@ import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 import committeesRouter from './models/committees.js';
 import { createAdvisor, getAdvisors } from './models/advisor.js';
 
+import { listSuppliesByEvent, createSupplyForEvent } from './models/supply.js';
+
 import {
   getUserByUsername,
   createUser,
@@ -41,8 +43,33 @@ app.use(
     optionsSuccessStatus: 204
   })
 )
+app.use(express.json());
+app.get('/api/events/:eventId/supplies', async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const supplies = await listSuppliesByEvent(eventId);
+    return res.json(supplies);
+  } catch (err) {
+    console.error(`Error fetching supplies for event ${req.params.eventId}:`, err);
+    return res.status(500).json({ message: 'Failed to list supplies' });
+  }
+});
 
-app.use(express.json())
+/**
+ * POST /api/events/:eventId/supplies
+ * Body: { name, quantity, unitCost, notes, link, reusable, return_needed, vendor: { … } }
+ * Creates (and upserts) vendor, then inserts a new supply record tied to that event.
+ */
+app.post('/api/events/:eventId/supplies', async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+    const result = await createSupplyForEvent(eventId, req.body);
+    return res.status(201).json(result);
+  } catch (err) {
+    console.error(`Error creating supply for event ${req.params.eventId}:`, err);
+    return res.status(500).json({ message: err.message });
+  }
+});
 
 app.post('/api/councils', async (req, res) => {
   try {

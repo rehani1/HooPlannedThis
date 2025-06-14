@@ -99,6 +99,7 @@ export default function ManageEvents() {
         contact_phone: form.vendor.contact_phone || null
       }
     };
+    console.log('🛰️ AddSupply Payload →', JSON.stringify(payload, null, 2));
     await fetch(`${API_BASE}/api/events/${eventId}/supplies`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
