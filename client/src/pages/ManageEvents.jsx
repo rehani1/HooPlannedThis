@@ -131,7 +131,7 @@ export default function ManageEvents() {
                       <div style={{ display:'flex', justifyContent:'space-between' }}>
                         <div>
                           <strong>{s.name}</strong>{' '}
-                          <span style={{ color:'#666' }}>×{s.quantity}</span>
+                          {/* <span style={{ color:'#666' }}>×{s.quantity}</span> */}
 
                           <div style={{ fontSize:'0.9rem', marginTop:4 }}>
                             <span>Unit: ${(parseFloat(s.unitCost) || 0).toFixed(2)}</span>{' • '}
