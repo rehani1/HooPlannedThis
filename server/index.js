@@ -10,7 +10,10 @@ import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 import committeesRouter from './models/committees.js';
 import { createAdvisor, getAdvisors } from './models/advisor.js';
 
-import { listSuppliesByEvent, createSupplyForEvent } from './models/supply.js';
+import {
+    listItemsByEvent,
+    createItem
+  } from './models/supply.js';
 
 import {
   getUserByUsername,
@@ -45,34 +48,35 @@ app.use(
 )
 app.use(express.json());
 /**
- * GET /api/events/:eventId/supplies
- * -> returns Array<Supply>
+ * GET  /api/items?event_id=27
  */
-app.get('/api/events/:eventId/supplies', async (req, res) => {
+app.get('/api/items', async (req, res) => {
+  const eventId = req.query.event_id;
+  if (!eventId) return res.status(400).json({ message: 'Missing event_id' });
   try {
-    const supplies = await listSuppliesByEvent(req.params.eventId);
-    res.json(supplies);
+    const items = await listItemsByEvent(eventId);
+    res.json(items);
   } catch (err) {
-    console.error('Error listing supplies:', err);
-    res.status(500).json({ message: 'Failed to list supplies' });
+    console.error('Error listing items:', err);
+    res.status(500).json({ message: 'Failed to list items' });
   }
 });
 
 /**
- * POST /api/events/:eventId/supplies
- * Body: Supply (minus `id`)
- * -> returns { insertId }
+ * POST /api/items
+ * Body must include event_id
  */
-app.post('/api/events/:eventId/supplies', async (req, res) => {
+app.post('/api/items', async (req, res) => {
+  const data = req.body;
+  if (!data.event_id) return res.status(400).json({ message: 'Missing event_id in payload' });
   try {
-    const newId = await createSupplyForEvent(req.params.eventId, req.body);
-    res.status(201).json({ supply_id: newId });
+    const newId = await createItem(data);
+    res.status(201).json({ item_id: newId });
   } catch (err) {
-    console.error('Error creating supply:', err);
+    console.error('Error creating item:', err);
     res.status(500).json({ message: err.message });
   }
 });
-
 
 app.post('/api/councils', async (req, res) => {
   try {

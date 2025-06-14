@@ -3,33 +3,43 @@ import pool from '../db.js';
 import { promisify } from 'util';
 
 /**
- * List all supplies for an event, returning nested vendor objects.
+ * List all items for an event via a query param.
  */
-export async function listSuppliesByEvent(eventId) {
+export async function listItemsByEvent(eventId) {
   const conn  = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
   try {
     const rows = await query(
       `SELECT 
-         s.supply_id, s.event_id, s.company_name,
-         s.name, s.stock_qty, s.cost, s.description, s.link,
-         s.reusable, s.return_needed,
-         v.contact_name, v.contact_address, v.contact_email, v.contact_phone
+         s.supply_id AS id,
+         s.event_id,
+         s.company_name,
+         s.name,
+         s.stock_qty  AS quantity,
+         s.cost       AS unitCost,
+         s.description AS notes,
+         s.link,
+         s.reusable,
+         s.return_needed,
+         v.contact_name,
+         v.contact_address,
+         v.contact_email,
+         v.contact_phone
        FROM Supply s
        LEFT JOIN Vendor v ON s.company_name = v.company_name
        WHERE s.event_id = ?`,
       [eventId]
     );
     return rows.map(r => ({
-      id:           r.supply_id,
-      eventId:      r.event_id,
-      name:         r.name,
-      quantity:     r.stock_qty,
-      unitCost:     parseFloat(r.cost),
-      notes:        r.description,
-      link:         r.link,
-      reusable:     Boolean(r.reusable),
-      return_needed:Boolean(r.return_needed),
+      id:            r.id,
+      event_id:      r.event_id,
+      name:          r.name,
+      quantity:      r.quantity,
+      unitCost:      parseFloat(r.unitCost),
+      notes:         r.notes,
+      link:          r.link,
+      reusable:      Boolean(r.reusable),
+      return_needed: Boolean(r.return_needed),
       vendor: {
         company:        r.company_name,
         contact_name:   r.contact_name,
@@ -44,16 +54,16 @@ export async function listSuppliesByEvent(eventId) {
 }
 
 /**
- * Upsert vendor, then insert a supply row.
- * Returns the new supply_id.
+ * Upsert vendor, then insert a new item row.
+ * Expects data.event_id in the payload instead of URL.
  */
-export async function createSupplyForEvent(eventId, data) {
+export async function createItem(data) {
   const conn  = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
+  const eventId = data.event_id;
   try {
     await conn.beginTransaction();
 
-    // 1) Upsert vendor
     if (data.vendor?.company) {
       await query(
         `INSERT INTO Vendor
@@ -74,7 +84,6 @@ export async function createSupplyForEvent(eventId, data) {
       );
     }
 
-    // 2) Insert supply
     const result = await query(
       `INSERT INTO Supply
          (event_id, company_name, name, stock_qty, cost,
