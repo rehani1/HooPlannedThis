@@ -141,7 +141,7 @@ export default function RegisterAccount() {
               <label htmlFor="username">Computing ID</label>
               <input
                 id="username" name="username" type="text"
-                className="input-field" placeholder="e.g. abc1de"
+                className="input-field" placeholder="e.g., abc1de"
                 value={formData.username} onChange={handleChange} required
               />
             </div>
@@ -149,7 +149,7 @@ export default function RegisterAccount() {
               <label htmlFor="classId">Class Graduation Year</label>
               <input
                 id="classId" name="classId" type="text"
-                className="input-field" placeholder="2027"
+                className="input-field" placeholder="e.g., 2027"
                 value={formData.classId} onChange={handleChange} required
               />
             </div>
