@@ -16,7 +16,7 @@ html, body, #root {
   
  
   .top-header {
-    height: 60px;
+    height: 85px;
     width: 100%;
     background-color: white;
     border-bottom: 1px solid #ddd;
@@ -25,7 +25,7 @@ html, body, #root {
     padding: 0 24px;
     font-family: 'Montserrat', sans-serif;
     font-weight: 600;
-    font-size: 18px;
+    font-size: 28px;
     color: #003366;
     box-sizing: border-box;
   }
@@ -50,8 +50,8 @@ html, body, #root {
   }
   
   .logo-with-icon svg {
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     fill: #ff8937;
   }
   

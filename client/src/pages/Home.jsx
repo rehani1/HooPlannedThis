@@ -31,12 +31,12 @@ export default function Home() {
 
   return (
     <Layout>
-      <h1 style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <CalendarIcon /> Welcome to HooPlannedThis!
+      <h1 style={{ display:'flex', alignItems:'center', gap:8, fontSize: '3rem', color: '#003366' }}>
+        Welcome to HooPlannedThis!
       </h1>
 
       <section style={{ marginTop: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+        <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem', color: '#003366' }}>
           Upcoming Events
         </h2>
 
