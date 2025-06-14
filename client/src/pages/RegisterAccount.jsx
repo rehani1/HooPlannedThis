@@ -182,7 +182,7 @@ export default function RegisterAccount() {
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
                   type="text" name="academicYearStart"
-                  placeholder="e.g. 2025"
+                  placeholder="e.g., 2025"
                   className="input-field"
                   value={formData.academicYearStart}
                   onChange={handleChange}
@@ -191,7 +191,7 @@ export default function RegisterAccount() {
                 <span className="year-dash">–</span>
                 <input
                   type="text" name="academicYearEnd"
-                  placeholder="e.g. 2026"
+                  placeholder="e.g., 2026"
                   className="input-field"
                   value={formData.academicYearEnd}
                   onChange={handleChange}
