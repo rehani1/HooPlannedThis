@@ -77,14 +77,14 @@ export default function Home() {
                     <p style={{ margin:'0 0 1rem', color:'#444' }}>
                       {evt.description}
                     </p>
-                    <Link to={`/events/manage/${evt.event_id}`} style={{
+                    {/* <Link to={`/events/manage/${evt.event_id}`} style={{
                       display: 'inline-block',
                       color: '#ff8937',
                       fontWeight: 'bold',
                       textDecoration: 'none'
                     }}>
                       Manage supplies →
-                    </Link>
+                    </Link> */}
                   </article>
                 ))}
               </div>
