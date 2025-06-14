@@ -44,32 +44,35 @@ app.use(
   })
 )
 app.use(express.json());
+/**
+ * GET /api/events/:eventId/supplies
+ * -> returns Array<Supply>
+ */
 app.get('/api/events/:eventId/supplies', async (req, res) => {
   try {
-    const eventId = req.params.eventId;
-    const supplies = await listSuppliesByEvent(eventId);
-    return res.json(supplies);
+    const supplies = await listSuppliesByEvent(req.params.eventId);
+    res.json(supplies);
   } catch (err) {
-    console.error(`Error fetching supplies for event ${req.params.eventId}:`, err);
-    return res.status(500).json({ message: 'Failed to list supplies' });
+    console.error('Error listing supplies:', err);
+    res.status(500).json({ message: 'Failed to list supplies' });
   }
 });
 
 /**
  * POST /api/events/:eventId/supplies
- * Body: { name, quantity, unitCost, notes, link, reusable, return_needed, vendor: { … } }
- * Creates (and upserts) vendor, then inserts a new supply record tied to that event.
+ * Body: Supply (minus `id`)
+ * -> returns { insertId }
  */
 app.post('/api/events/:eventId/supplies', async (req, res) => {
   try {
-    const eventId = req.params.eventId;
-    const result = await createSupplyForEvent(eventId, req.body);
-    return res.status(201).json(result);
+    const newId = await createSupplyForEvent(req.params.eventId, req.body);
+    res.status(201).json({ supply_id: newId });
   } catch (err) {
-    console.error(`Error creating supply for event ${req.params.eventId}:`, err);
-    return res.status(500).json({ message: err.message });
+    console.error('Error creating supply:', err);
+    res.status(500).json({ message: err.message });
   }
 });
+
 
 app.post('/api/councils', async (req, res) => {
   try {
