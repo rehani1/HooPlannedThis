@@ -1,3 +1,4 @@
+// src/pages/ManageEvents.jsx
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 
@@ -9,7 +10,7 @@ export default function ManageEvents() {
   const [showForm, setShowForm] = useState({});// { [eventId]: bool }
   const [form, setForm] = useState({});        // { [eventId]: itemData }
 
-  // 1) Load events + for each, load items
+  // Load events + for each, load items
   useEffect(() => {
     fetch(`${API_BASE}/api/events`)
       .then(r => r.json())
@@ -27,7 +28,6 @@ export default function ManageEvents() {
     setForm(prev => ({
       ...prev,
       [eventId]: {
-        event_id: eventId,
         name: '',
         quantity: 0,
         unitCost: 0,
@@ -71,16 +71,22 @@ export default function ManageEvents() {
   };
 
   const submitItem = async eventId => {
-    const payload = form[eventId];
+    // include event_id in the payload
+    const payload = {
+      event_id: eventId,
+      ...form[eventId]
+    };
     console.log('Submitting →', payload);
+
     await fetch(`${API_BASE}/api/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+
     // reload items
     const data = await fetch(`${API_BASE}/api/items?event_id=${eventId}`)
-                     .then(r => r.json());
+                     .then(r => r.ok ? r.json() : Promise.reject(r.statusText));
     setItems(prev => ({ ...prev, [eventId]: data }));
     setShowForm(sf => ({ ...sf, [eventId]: false }));
   };
@@ -93,37 +99,58 @@ export default function ManageEvents() {
         return (
           <div key={evId} style={{ marginBottom: 32 }}>
             <h2>{evt.name}</h2>
-            <button onClick={() => openForm(evId)}>+ Add Item</button>
+            <button onClick={() => openForm(evId)}>+ Add Supply</button>
 
             {showForm[evId] && (
               <div style={{ marginTop: 12, padding: 12, border: '1px solid #ccc' }}>
-                <input
-                  name="name"
-                  onChange={e => handleChange(evId, e)}
-                  placeholder="Item Name"
-                />
-                <input
-                  name="quantity"
-                  type="number"
-                  onChange={e => handleChange(evId, e)}
-                  placeholder="Quantity"
-                />
-                <input
-                  name="unitCost"
-                  type="number"
-                  onChange={e => handleChange(evId, e)}
-                  placeholder="Unit Cost"
-                />
-                <input
-                  name="notes"
-                  onChange={e => handleChange(evId, e)}
-                  placeholder="Notes"
-                />
-                <input
-                  name="link"
-                  onChange={e => handleChange(evId, e)}
-                  placeholder="Link"
-                />
+                <label>
+                  Item Name
+                  <input
+                    name="name"
+                    onChange={e => handleChange(evId, e)}
+                    placeholder="Item Name"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Quantity
+                  <input
+                    name="quantity"
+                    type="number"
+                    onChange={e => handleChange(evId, e)}
+                    placeholder="Quantity"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Unit Cost
+                  <input
+                    name="unitCost"
+                    type="number"
+                    onChange={e => handleChange(evId, e)}
+                    placeholder="Unit Cost"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Notes
+                  <textarea
+                    name="notes"
+                    onChange={e => handleChange(evId, e)}
+                    placeholder="Notes"
+                    rows={2}
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Link
+                  <input
+                    name="link"
+                    onChange={e => handleChange(evId, e)}
+                    placeholder="Link"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
                 <label>
                   <input
                     name="reusable"
@@ -138,36 +165,58 @@ export default function ManageEvents() {
                     onChange={e => handleChange(evId, e)}
                   /> Return Needed
                 </label>
-                <h4>Vendor Info</h4>
-                <input
-                  name="company"
-                  onChange={e => handleChange(evId, e, true)}
-                  placeholder="Company"
-                />
-                <input
-                  name="contact_name"
-                  onChange={e => handleChange(evId, e, true)}
-                  placeholder="Contact Name"
-                />
-                <input
-                  name="contact_address"
-                  onChange={e => handleChange(evId, e, true)}
-                  placeholder="Contact Address"
-                />
-                <input
-                  name="contact_email"
-                  type="email"
-                  onChange={e => handleChange(evId, e, true)}
-                  placeholder="Contact Email"
-                />
-                <input
-                  name="contact_phone"
-                  type="tel"
-                  onChange={e => handleChange(evId, e, true)}
-                  placeholder="Contact Phone"
-                />
+
+                <h4 style={{ marginTop: 12 }}>Vendor Info</h4>
+                <label>
+                  Company
+                  <input
+                    name="company"
+                    onChange={e => handleChange(evId, e, true)}
+                    placeholder="Company"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Contact Name
+                  <input
+                    name="contact_name"
+                    onChange={e => handleChange(evId, e, true)}
+                    placeholder="Contact Name"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Contact Address
+                  <input
+                    name="contact_address"
+                    onChange={e => handleChange(evId, e, true)}
+                    placeholder="Contact Address"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Contact Email
+                  <input
+                    name="contact_email"
+                    type="email"
+                    onChange={e => handleChange(evId, e, true)}
+                    placeholder="Contact Email"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+                <label>
+                  Contact Phone
+                  <input
+                    name="contact_phone"
+                    type="tel"
+                    onChange={e => handleChange(evId, e, true)}
+                    placeholder="Contact Phone"
+                    style={{ width: '100%', marginBottom: 8 }}
+                  />
+                </label>
+
                 <button onClick={() => submitItem(evId)} style={{ marginTop: 12 }}>
-                  Save
+                  Add Supply
                 </button>
               </div>
             )}
