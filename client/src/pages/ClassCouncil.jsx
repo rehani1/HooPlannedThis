@@ -1,4 +1,3 @@
-
 // src/pages/ClassCouncil.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -114,13 +113,16 @@ export default function ClassCouncil() {
         <button
           onClick={() => navigate('/budget')}
           style={{
-            backgroundColor: '#1e3a8a',
-            color: '#fff',
-            padding: '10px 20px',
+            backgroundColor: '#003366',       
+            color: '#ffffff',                  
+            fontFamily: 'Monteserrat, sans-serif',  
+            fontSize: '18px',                  
+            fontWeight: '600',                 
+            padding: '12px 24px',
             borderRadius: '8px',
             border: 'none',
             cursor: 'pointer',
-            fontSize: '16px'
+            letterSpacing: '0.5px'
           }}
         >
           View Budget Overview
