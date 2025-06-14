@@ -29,7 +29,7 @@ export default function Events() {
   return (
     <Layout>
       <div style={{ padding: '2rem', maxWidth: 800, margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Recent Events</h1>
+        <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Three Upcoming Events</h1>
         {loading && <p>Loading…</p>}
         {error && <p style={{ color: 'crimson' }}>Error: {error}</p>}
         {!loading && !error && (
@@ -49,9 +49,10 @@ export default function Events() {
                   {new Date(evt.event_date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
                 <p style={{ margin: '0 0 0.75rem', color: '#666', fontSize: '0.9rem' }}>
-                  <strong>Time:</strong>{' '}
+                  <strong>Event Time:</strong>{' '}
                   {evt.event_time.slice(0,5)}
                 </p>
+                
                 <p style={{ margin: '0 0 1rem', color: '#444' }}>{evt.description}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.85rem' }}>
                   <span style={{ background: '#f0f0f0', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>

@@ -10,7 +10,7 @@ export default function StaticMap({ address, width = 220, height = 180 }) {
   const divRef = useRef(null);
 
   useEffect(() => {
-    /* 1️⃣  Forward‑geocode once, then create map */
+   
     const controller = new AbortController();
 
     (async () => {
@@ -19,7 +19,7 @@ export default function StaticMap({ address, width = 220, height = 180 }) {
       const res = await fetch(url, { signal: controller.signal });
       const data = await res.json();
       const feature = data.features[0];
-      if (!feature) return;                           // nothing found
+      if (!feature) return;                           
 
       const [lng, lat] = feature.center;
       mapRef.current = new mapboxgl.Map({
@@ -27,7 +27,7 @@ export default function StaticMap({ address, width = 220, height = 180 }) {
         style: 'mapbox://styles/mapbox/streets-v12',
         center: [lng, lat],
         zoom: 15,
-        interactive: false        // read‑only thumbnail
+        interactive: false       
       });
 
       new mapboxgl.Marker().setLngLat([lng, lat]).addTo(mapRef.current);

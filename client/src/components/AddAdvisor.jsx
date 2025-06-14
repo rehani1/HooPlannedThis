@@ -1,10 +1,10 @@
-// src/components/AddAdvisor.jsx
+
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-/** Modal for creating a new advisor */
+
 function CreateAdvisorModal({ isOpen, onClose, onSave, initial }) {
   const defaultForm = initial || {
     firstName: '', lastName: '',
@@ -87,7 +87,7 @@ export default function AddAdvisor() {
     fetch(`${API_BASE}/api/advisors`)
       .then(r => r.json())
       .then(setAdvisors)
-      .catch(e => console.error('❌ GET /api/advisors', e));
+      .catch(e => console.error('GET /api/advisors', e));
   }, []);
 
   const handleSave = async payload => {
@@ -105,7 +105,7 @@ export default function AddAdvisor() {
       setAdvisors(a => [...a, { ...payload, id }]);
       setShowModal(false);
     } catch (err) {
-      console.error('❌ POST /api/advisors', err);
+      console.error('POST /api/advisors', err);
       alert(`Error: ${err.message}`);
     }
   };

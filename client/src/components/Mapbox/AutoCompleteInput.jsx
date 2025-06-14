@@ -44,7 +44,7 @@ export default function AutoCompleteInput({handleManualInputChange, setAddress, 
       address[identifier] = element.text;
     });
 
-    // console.log(address.longitude, address.latitude);
+   
 
     setAddress(address);
     setSuggestions([]);

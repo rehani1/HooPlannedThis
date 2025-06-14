@@ -64,16 +64,14 @@ export default function AddressForm({ address, onSubmit, setAddress }) {
       {}
       <div className="map-wrapper">
         <Map
-          latitude={address.latitude || 38.0356} // default UVA lat if empty
-          longitude={address.longitude || -78.5034} // default UVA lng
-          updateCoordinates={setAddress} // reverse geocoded address from marker drag
+          latitude={address.latitude || 38.0356} 
+          longitude={address.longitude || -78.5034} 
+          updateCoordinates={setAddress} 
         />
       </div>
 
       <div className="buttons">
-        {/* <button type="submit" className="confirm-button">
-          Confirm
-        </button> */}
+        {}
         <button
           type="reset"
           className="reset-button"
