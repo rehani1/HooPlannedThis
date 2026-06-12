@@ -33,7 +33,6 @@ export default function AdminCreateCouncil() {
   });
 
   const [showCouncilForm, setShowCouncilForm] = useState(false);
-  const [showAdvisorModal, setShowAdvisorModal] = useState(false);
 
   const [form, setForm] = useState({
     councilType: '',
@@ -159,9 +158,12 @@ export default function AdminCreateCouncil() {
 
   const saveNewAdvisor = a => {
     const name = `${a.firstName} ${a.lastName}`;
-    setAdvisors(prev => [...prev, { id: a.id, name }]);
+    setAdvisors(prev =>
+      prev.some(advisor => advisor.id === a.id)
+        ? prev
+        : [...prev, { id: a.id, name }]
+    );
     setForm(f => ({ ...f, advisorId: a.id }));
-    setShowAdvisorModal(false);
   };
 
   const renderCouncilTable = (label, arr) => (
@@ -272,10 +274,7 @@ export default function AdminCreateCouncil() {
         <select
           name="advisorId"
           value={form.advisorId}
-          onChange={e=>{
-            if (e.target.value==='new') setShowAdvisorModal(true);
-            else                       handleChange(e);
-          }}
+          onChange={handleChange}
           style={s.select}
         >
           <option value="" disabled>Select advisor…</option>
@@ -293,9 +292,7 @@ export default function AdminCreateCouncil() {
       </Modal>
 
       <AddAdvisor
-        isOpen={showAdvisorModal}
-        onClose={()=>setShowAdvisorModal(false)}
-        onSave={saveNewAdvisor}
+        onAdvisorCreated={saveNewAdvisor}
       />
     </Layout>
   );
@@ -328,5 +325,3 @@ const modalBackdrop = { position:'fixed', inset:0, background:'rgba(0,0,0,.45)',
 const modalBox = { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
                    background:'#fff', padding:28, borderRadius:10, width:460,
                    maxHeight:'80vh', overflowY:'auto', zIndex:1001 };
-
-

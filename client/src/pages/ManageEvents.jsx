@@ -52,7 +52,7 @@ export default function ManageEvents() {
   }, []);
 
   const fetchSupplies = eventId => {
-    fetch(`${API_BASE}/api/events/${eventId}/supplies`)
+    fetch(`${API_BASE}/api/items?event_id=${encodeURIComponent(eventId)}`)
       .then(res => res.ok ? res.json() : Promise.reject(res.statusText))
       .then(data => setSupplies(prev => ({ ...prev, [eventId]: data || [] })))
       .catch(() => setSupplies(prev => ({ ...prev, [eventId]: [] })));
@@ -76,6 +76,7 @@ export default function ManageEvents() {
   const handleAddSupply = async eventId => {
     const form = supplyForm[eventId];
     const payload = {
+      event_id: eventId,
       name: form.name,
       quantity: parseInt(form.quantity, 10) || 0,
       unitCost: parseFloat(form.unitCost) || 0,
@@ -92,13 +93,18 @@ export default function ManageEvents() {
       }
     };
 
-    await fetch(`${API_BASE}/api/events/${eventId}/supplies`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    fetchSupplies(eventId);
-    setShowForm(prev => ({ ...prev, [eventId]: false }));
+    try {
+      const res = await fetch(`${API_BASE}/api/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(`Request failed ${res.status}`);
+      fetchSupplies(eventId);
+      setShowForm(prev => ({ ...prev, [eventId]: false }));
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   if (loading) return <Layout><p>Loading…</p></Layout>;

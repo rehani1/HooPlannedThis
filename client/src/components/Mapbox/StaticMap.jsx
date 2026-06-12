@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 
 
-mapboxgl.accessToken = import.meta.env.VITE_TOKEN    // ← from .env
+mapboxgl.accessToken = import.meta.env.VITE_TOKEN;
 
 
 export default function StaticMap({ address, width = 220, height = 180 }) {

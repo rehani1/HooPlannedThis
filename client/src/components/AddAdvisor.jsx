@@ -4,18 +4,21 @@ import PropTypes from 'prop-types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+const DEFAULT_ADVISOR_FORM = {
+  firstName: '',
+  lastName: '',
+  building: '',
+  address: '',
+  email: '',
+  phone: ''
+};
 
 function CreateAdvisorModal({ isOpen, onClose, onSave, initial }) {
-  const defaultForm = initial || {
-    firstName: '', lastName: '',
-    building: '', address: '',
-    email: '', phone: ''
-  };
-  const [form, setForm] = useState(defaultForm);
+  const [form, setForm] = useState(initial || DEFAULT_ADVISOR_FORM);
 
   useEffect(() => {
-    if (isOpen) setForm(defaultForm);
-  }, [isOpen]);
+    if (isOpen) setForm(initial || DEFAULT_ADVISOR_FORM);
+  }, [initial, isOpen]);
 
   const handleChange = e =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -79,7 +82,7 @@ CreateAdvisorModal.propTypes = {
 };
 
 /** Main component: list + “Add Advisor” button + modal */
-export default function AddAdvisor() {
+export default function AddAdvisor({ onAdvisorCreated }) {
   const [advisors, setAdvisors] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -102,7 +105,9 @@ export default function AddAdvisor() {
       console.log('📡 Response body:', text);
       if (!res.ok) throw new Error(text || res.status);
       const { id } = JSON.parse(text);
-      setAdvisors(a => [...a, { ...payload, id }]);
+      const advisor = { ...payload, id };
+      setAdvisors(a => [...a, advisor]);
+      onAdvisorCreated?.(advisor);
       setShowModal(false);
     } catch (err) {
       console.error('POST /api/advisors', err);
@@ -133,6 +138,10 @@ export default function AddAdvisor() {
     </div>
   );
 }
+
+AddAdvisor.propTypes = {
+  onAdvisorCreated: PropTypes.func,
+};
 
 /** Inline styles */
 const styles = {

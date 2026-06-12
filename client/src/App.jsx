@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
-import Login           from './pages/Login';
+import Login           from './pages/login';
 import Home            from './pages/Home';
 import Events          from './pages/Events';
 import Committees      from './pages/Committees';
-import Profile         from './pages/Profile';
+import Profile         from './pages/profile';
 import ClassCouncil    from './pages/ClassCouncil';
 import CreateEvent     from './pages/CreateEvent';
 import RegisterAccount from './pages/RegisterAccount';
@@ -42,7 +42,7 @@ function App() {
         <Route path="/home"               element={isAuthenticated ? <Home />            : <Navigate to="/login" />} />
         <Route path="/events"             element={isAuthenticated ? <Events />          : <Navigate to="/login" />} />
         <Route path="/events/createevent" element={isAuthenticated ? <CreateEvent />     : <Navigate to="/login" />} />
-        <Route path="/events/manage" element={<ManageEvents />} />
+        <Route path="/events/manage" element={isAuthenticated ? <ManageEvents /> : <Navigate to="/login" />} />
         <Route path="/committees"         element={isAuthenticated ? <Committees />      : <Navigate to="/login" />} />
         <Route path="/profile"            element={isAuthenticated ? <Profile />         : <Navigate to="/login" />} />
         <Route path="/classcouncil"       element={isAuthenticated ? <ClassCouncil />    : <Navigate to="/login" />} />

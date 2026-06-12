@@ -8,7 +8,7 @@ import App from './App.jsx';
 import './index.css';
 import './styles/root.css';
 
-function Root() {
+export function Root() {
 
   const [isAuth, setIsAuth] = useState(Boolean(localStorage.getItem('token')));
 

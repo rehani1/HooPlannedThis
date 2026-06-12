@@ -9,6 +9,7 @@ import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 
 import committeesRouter from './models/committees.js';
 import { createAdvisor, getAdvisors } from './models/advisor.js';
+import { getCommitteeBudgets, getTotalCouncilBudget } from './models/budget.js';
 
 import {
     listItemsByEvent,

@@ -105,7 +105,7 @@ export default function ClassCouncil() {
   return (
     <Layout>
       <h1 style={{ fontWeight: 700, fontSize: 32, marginBottom: 24, textAlign: 'left', color: '#003366' }}>
-        Class Council 2025 – 2026
+        Class Council 2025 - 2026
       </h1>
 
       {/* Budget Navigation Button */}
@@ -169,4 +169,3 @@ export default function ClassCouncil() {
     </Layout>
   );
 }
-
