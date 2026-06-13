@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken'
 import morgan from 'morgan';
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { createCouncilYear, getAllCouncilYears, updateCouncilYear } from './models/council.js';
+import { createCouncilYear, getAllCouncilYears, getCouncilDetails, updateCouncilYear } from './models/council.js';
 
 import committeesRouter, { getCommitteeById, updateCommittee } from './models/committees.js';
 import { createAdvisor, getAdvisors, updateAdvisor } from './models/advisor.js';
@@ -287,6 +287,19 @@ app.get('/api/councils', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).end();
+  }
+});
+
+app.get('/api/class-council', requireAuth, async (req, res) => {
+  try {
+    const council = await getCouncilDetails(req.user.councilYearId);
+    res.json(council);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('GET /api/class-council error', err);
+    res.status(500).json({ message: 'Failed to load class council' });
   }
 });
 

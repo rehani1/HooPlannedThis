@@ -328,3 +328,191 @@ export async function getAllCouncilYears() {
     conn.release();
   }
 }
+
+function parseCouncilYearId(councilYearId) {
+  const id = Number(councilYearId);
+  if (!Number.isInteger(id) || id <= 0) {
+    const err = new Error('Invalid council id');
+    err.status = 400;
+    throw err;
+  }
+  return id;
+}
+
+export async function getCouncilDetails(councilYearId) {
+  const id = parseCouncilYearId(councilYearId);
+  const conn  = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
+
+  try {
+    const councils = await query(
+      `SELECT cy.council_year_id,
+              cy.grad_year,
+              cy.academic_year,
+              cy.class_name,
+              cy.advisor_id,
+              COALESCE(cb.budget_total, 0) AS budget_total,
+              a.advisor_first_name,
+              a.advisor_last_name,
+              a.advisor_phone,
+              a.advisor_email,
+              a.building_name,
+              a.address
+         FROM CouncilYear cy
+         LEFT JOIN CouncilBudget cb ON cy.council_year_id = cb.council_year_id
+         LEFT JOIN Advisor a ON cy.advisor_id = a.advisor_id
+        WHERE cy.council_year_id = ?
+        LIMIT 1`,
+      [id]
+    );
+
+    const council = councils[0];
+    if (!council) {
+      const err = new Error('Council year not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const [committees, members, memberships, executiveBoard] = await Promise.all([
+      query(
+        `SELECT c.committee_id,
+                c.committee_name,
+                c.budget_allocated,
+                COUNT(cmem.computing_id) AS member_count
+           FROM Committee c
+           LEFT JOIN CommitteeMembership cmem ON c.committee_id = cmem.committee_id
+          WHERE c.council_year_id = ?
+          GROUP BY c.committee_id, c.committee_name, c.budget_allocated
+          ORDER BY c.committee_name`,
+        [id]
+      ),
+      query(
+        `SELECT computing_id,
+                first_name,
+                last_name,
+                email,
+                bio,
+                photo_url,
+                created_account_at
+           FROM CouncilMember
+          WHERE council_year_id = ?
+          ORDER BY last_name, first_name, computing_id`,
+        [id]
+      ),
+      query(
+        `SELECT cmem.computing_id,
+                c.committee_id,
+                c.committee_name,
+                cmem.membership_role,
+                cmem.start_date,
+                cmem.end_date
+           FROM CommitteeMembership cmem
+           JOIN Committee c ON cmem.committee_id = c.committee_id
+          WHERE c.council_year_id = ?
+          ORDER BY c.committee_name, cmem.membership_role, cmem.computing_id`,
+        [id]
+      ),
+      query(
+        `SELECT ep.executive_position_id,
+                ep.role,
+                cm.computing_id,
+                cm.first_name,
+                cm.last_name,
+                cm.email,
+                cm.bio,
+                cm.photo_url
+           FROM ExecutivePosition ep
+           LEFT JOIN CouncilMember cm ON ep.computing_id = cm.computing_id
+          WHERE ep.council_year_id = ?
+          ORDER BY ep.role, cm.last_name, cm.first_name`,
+        [id]
+      ),
+    ]);
+
+    const memberMap = new Map(members.map(member => [
+      member.computing_id,
+      {
+        computingId: member.computing_id,
+        firstName: member.first_name,
+        lastName: member.last_name,
+        email: member.email,
+        bio: member.bio,
+        photoUrl: member.photo_url,
+        createdAccountAt: member.created_account_at,
+        committees: [],
+        executiveRoles: [],
+      },
+    ]));
+
+    for (const membership of memberships) {
+      const member = memberMap.get(membership.computing_id);
+      if (!member) continue;
+      member.committees.push({
+        committeeId: membership.committee_id,
+        committeeName: membership.committee_name,
+        role: membership.membership_role,
+        startDate: membership.start_date,
+        endDate: membership.end_date,
+      });
+    }
+
+    const executiveRows = executiveBoard.map(position => {
+      const member = memberMap.get(position.computing_id);
+      if (member) member.executiveRoles.push(position.role);
+
+      return {
+        id: position.executive_position_id,
+        role: position.role,
+        computingId: position.computing_id,
+        firstName: position.first_name,
+        lastName: position.last_name,
+        email: position.email,
+        bio: position.bio,
+        photoUrl: position.photo_url,
+      };
+    });
+
+    const committeeRows = committees.map(committee => ({
+      id: committee.committee_id,
+      name: committee.committee_name,
+      budgetAllocated: Number(committee.budget_allocated) || 0,
+      memberCount: Number(committee.member_count) || 0,
+      members: memberships
+        .filter(membership => membership.committee_id === committee.committee_id)
+        .map(membership => {
+          const member = memberMap.get(membership.computing_id);
+          return {
+            computingId: membership.computing_id,
+            firstName: member?.firstName,
+            lastName: member?.lastName,
+            email: member?.email,
+            role: membership.membership_role,
+            startDate: membership.start_date,
+            endDate: membership.end_date,
+          };
+        }),
+    }));
+
+    return {
+      councilYearId: council.council_year_id,
+      gradYear: council.grad_year,
+      academicYear: council.academic_year,
+      className: council.class_name,
+      budgetTotal: Number(council.budget_total) || 0,
+      advisor: {
+        id: council.advisor_id,
+        firstName: council.advisor_first_name,
+        lastName: council.advisor_last_name,
+        phone: council.advisor_phone,
+        email: council.advisor_email,
+        buildingName: council.building_name,
+        address: council.address,
+      },
+      executiveBoard: executiveRows,
+      committees: committeeRows,
+      members: Array.from(memberMap.values()),
+    };
+  } finally {
+    conn.release();
+  }
+}
