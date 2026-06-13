@@ -2,6 +2,116 @@
 import pool from '../db.js';
 import { promisify } from 'util';
 
+function requiredString(value, message) {
+  const parsed = String(value || '').trim();
+  if (!parsed) {
+    const err = new Error(message);
+    err.status = 400;
+    throw err;
+  }
+  return parsed;
+}
+
+function optionalString(value) {
+  const parsed = String(value || '').trim();
+  return parsed || null;
+}
+
+function nonNegativeNumber(value, message) {
+  const parsed = Number(value || 0);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    const err = new Error(message);
+    err.status = 400;
+    throw err;
+  }
+  return parsed;
+}
+
+function nonNegativeInteger(value, message) {
+  const parsed = Number(value || 0);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    const err = new Error(message);
+    err.status = 400;
+    throw err;
+  }
+  return parsed;
+}
+
+function positiveInteger(value, message) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    const err = new Error(message);
+    err.status = 400;
+    throw err;
+  }
+  return parsed;
+}
+
+function normalizeSupply(supply = {}) {
+  const vendor = supply.vendor || {};
+  const vendorCompany = optionalString(vendor.company);
+
+  return {
+    name: requiredString(supply.name, 'Item name is required'),
+    quantity: nonNegativeInteger(supply.quantity ?? supply.quantityNeeded, 'Item quantity must be a non-negative whole number'),
+    unitCost: nonNegativeNumber(supply.unitCost, 'Item unit cost must be a non-negative number'),
+    notes: optionalString(supply.notes),
+    reusable: Boolean(supply.reusable),
+    returnNeeded: Boolean(supply.returnNeeded ?? supply.return_needed),
+    link: optionalString(supply.link),
+    vendor: vendorCompany
+      ? {
+          company: vendorCompany,
+          contactName: optionalString(vendor.contactName ?? vendor.contact_name),
+          contactAddress: optionalString(vendor.contactAddress ?? vendor.contact_address),
+          contactEmail: optionalString(vendor.contactEmail ?? vendor.contact_email),
+          contactPhone: optionalString(vendor.contactPhone ?? vendor.contact_phone),
+        }
+      : null,
+  };
+}
+
+function normalizeEvent(data = {}) {
+  const locationName = optionalString(data.locationName);
+  const hasLocation =
+    locationName ||
+    optionalString(data.locationAddress) ||
+    optionalString(data.city) ||
+    optionalString(data.state) ||
+    optionalString(data.zipcode) ||
+    optionalString(data.venueEmail) ||
+    optionalString(data.venuePhone);
+
+  if (hasLocation && !locationName) {
+    const err = new Error('Location name is required when adding a location');
+    err.status = 400;
+    throw err;
+  }
+
+  return {
+    title: requiredString(data.title ?? data.name, 'Event name is required'),
+    date: requiredString(data.date ?? data.eventDate, 'Event date is required'),
+    startTime: requiredString(data.startTime ?? data.eventTime, 'Event time is required'),
+    description: optionalString(data.description),
+    budget: nonNegativeNumber(data.budget ?? data.budgetAllocated, 'Event budget must be a non-negative number'),
+    committeeId: positiveInteger(data.committeeId, 'Committee is required'),
+    status: optionalString(data.status) || 'planned',
+    location: hasLocation
+      ? {
+          name: locationName,
+          address: optionalString(data.locationAddress),
+          city: optionalString(data.city),
+          state: optionalString(data.state),
+          zipcode: optionalString(data.zipcode),
+          venueEmail: optionalString(data.venueEmail),
+          venuePhone: optionalString(data.venuePhone),
+        }
+      : null,
+    supplies: Array.isArray(data.supplies) ? data.supplies.map(normalizeSupply) : [],
+    createdBy: optionalString(data.createdBy),
+  };
+}
+
 async function insertSupplyForEvent(query, eventId, supply) {
   let vendorId = null;
 
@@ -18,10 +128,10 @@ async function insertSupplyForEvent(query, eventId, supply) {
          contact_phone   = VALUES(contact_phone)`,
       [
         supply.vendor.company,
-        supply.vendor.contact_name    || null,
-        supply.vendor.contact_address || null,
-        supply.vendor.contact_email   || null,
-        supply.vendor.contact_phone   || null
+        supply.vendor.contactName,
+        supply.vendor.contactAddress,
+        supply.vendor.contactEmail,
+        supply.vendor.contactPhone
       ]
     );
     vendorId = vendorRes.insertId;
@@ -33,9 +143,9 @@ async function insertSupplyForEvent(query, eventId, supply) {
      VALUES (?,?,?,?,?)`,
     [
       supply.name,
-      supply.quantity || 0,
-      supply.unitCost || 0,
-      supply.notes || null,
+      supply.quantity,
+      supply.unitCost,
+      supply.notes,
       supply.reusable ? 1 : 0
     ]
   );
@@ -49,12 +159,12 @@ async function insertSupplyForEvent(query, eventId, supply) {
     [
       eventId,
       supplyId,
-      supply.quantity || 0,
+      supply.quantity,
       0,
       0,
-      supply.unitCost || 0,
-      supply.return_needed ? 1 : 0,
-      supply.notes || null
+      supply.unitCost,
+      supply.returnNeeded ? 1 : 0,
+      supply.notes
     ]
   );
 
@@ -70,8 +180,8 @@ async function insertSupplyForEvent(query, eventId, supply) {
       [
         vendorId,
         supplyId,
-        supply.unitCost || 0,
-        supply.link || null,
+        supply.unitCost,
+        supply.link,
         1
       ]
     );
@@ -81,6 +191,7 @@ async function insertSupplyForEvent(query, eventId, supply) {
 }
 
 export async function createEvent(data) {
+  const event = normalizeEvent(data);
   const conn  = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
   const beginTransaction = promisify(conn.beginTransaction).bind(conn);
@@ -92,19 +203,19 @@ export async function createEvent(data) {
 
     // 1) insert location (if provided)
     let locationId = null;
-    if (data.locationName || data.locationAddress) {
+    if (event.location) {
       const locRes = await query(
         `INSERT INTO Location
            (name, address, city, state, zipcode, venue_email, venue_phone)
          VALUES (?,?,?,?,?,?,?)`,
         [
-          data.locationName    || null,
-          data.locationAddress || null,
-          data.city            || null,
-          data.state           || null,
-          data.zipcode         || null,
-          data.venueEmail      || null,
-          data.venuePhone      || null
+          event.location.name,
+          event.location.address,
+          event.location.city,
+          event.location.state,
+          event.location.zipcode,
+          event.location.venueEmail,
+          event.location.venuePhone
         ]
       );
       locationId = locRes.insertId;
@@ -118,20 +229,20 @@ export async function createEvent(data) {
           committee_id, location_id, created_by, status)
        VALUES (?,?,?,?,?,?,?,?,?)`,
       [
-        data.title,
-        data.date,
-        data.startTime,
-        data.description   || null,
-        data.budget        ?? 0.00,
-        data.committeeId,
+        event.title,
+        event.date,
+        event.startTime,
+        event.description,
+        event.budget,
+        event.committeeId,
         locationId,
-        data.createdBy || null,
-        data.status || 'planned'
+        event.createdBy,
+        event.status
       ]
     );
     const eventId = evtRes.insertId;
 
-    for (const s of data.supplies || []) {
+    for (const s of event.supplies) {
       await insertSupplyForEvent(query, eventId, s);
     }
 
@@ -147,9 +258,18 @@ export async function createEvent(data) {
   }
 }
 
-export async function getEvents(limit = 3, order = 'DESC') {
+export async function getEvents(limit = 3, order = 'DESC', committeeId = null) {
   const conn  = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
+  const filters = [];
+  const params = [];
+
+  if (committeeId !== null) {
+    filters.push('committee_id = ?');
+    params.push(committeeId);
+  }
+
+  params.push(limit);
 
   try {
     const rows = await query(
@@ -165,9 +285,10 @@ export async function getEvents(limit = 3, order = 'DESC') {
               budget_allocated,
               status
          FROM CouncilEvent
+        ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''}
         ORDER BY event_date ${order}
         LIMIT ?`,
-      [limit]
+      params
     );
     return rows;
   } finally {

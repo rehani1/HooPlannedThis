@@ -7,9 +7,10 @@ AutoCompleteInput.propTypes = {
     handleManualInputChange: PropTypes.func.isRequired,
     setAddress: PropTypes.func.isRequired,
     streetAndNumber: PropTypes.string.isRequired,
+    inputStyle: PropTypes.object,
   };
 
-export default function AutoCompleteInput({handleManualInputChange, setAddress, streetAndNumber}) {
+export default function AutoCompleteInput({handleManualInputChange, setAddress, streetAndNumber, inputStyle}) {
 
   const [suggestions, setSuggestions] = useState([]);
 
@@ -62,14 +63,17 @@ export default function AutoCompleteInput({handleManualInputChange, setAddress, 
                 placeholder="Address"
                 value={streetAndNumber}
                 onChange={handleChange}
+                style={inputStyle}
             />
-            <ul className="addressSuggestions">
-            {suggestions?.map((suggestion, index) => (
-            <li key={index} onClick={() => handleSuggestionClick(suggestion)}>
-              {suggestion.place_name}
-            </li>
-          ))}
-        </ul>
+            {suggestions.length > 0 && (
+              <ul className="addressSuggestions">
+                {suggestions.map((suggestion, index) => (
+                  <li key={index} onClick={() => handleSuggestionClick(suggestion)}>
+                    {suggestion.place_name}
+                  </li>
+                ))}
+              </ul>
+            )}
 
         </div>
     </div>;
