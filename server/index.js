@@ -370,6 +370,12 @@ app.post('/api/events', async (req, res) => {
     const id = await createEvent({ ...req.body, createdBy });
     return res.status(201).json({ id });
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ message: 'Selected committee or creator was not found' });
+    }
     if (err.code === 'ER_BAD_NULL_ERROR') {
       return res.status(400).json({ message: 'Missing required event fields' });
     }
@@ -401,22 +407,28 @@ app.get('/api/events', async (req, res, next) => {
     return next(err);
   }
 });
-app.get('/api/budget/overview', async (req, res) => {
+app.get('/api/budget/overview', requireAuth, async (req, res) => {
   try {
-    const budget = await getTotalCouncilBudget();
+    const budget = await getTotalCouncilBudget(req.user.councilYearId);
     if (!budget) return res.status(404).json({ message: 'No budget found' });
     res.json(budget);
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
     console.error(err);
     res.sendStatus(500);
   }
 });
 
-app.get('/api/budget/allocations', async (req, res) => {
+app.get('/api/budget/allocations', requireAuth, async (req, res) => {
   try {
-    const allocations = await getCommitteeBudgets();
+    const allocations = await getCommitteeBudgets(req.user.councilYearId);
     res.json(allocations);
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
     console.error(err);
     res.sendStatus(500);
   }
