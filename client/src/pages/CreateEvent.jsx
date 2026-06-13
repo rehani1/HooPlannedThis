@@ -50,7 +50,7 @@ export default function CreateEvent() {
       committeeId: parseInt(event.committeeId, 10),
 
       // Location
-      locationName: location.streetAndNumber,
+      locationName: location.locationName,
       locationAddress: location.streetAndNumber,
       city: location.place,
       state: location.region,

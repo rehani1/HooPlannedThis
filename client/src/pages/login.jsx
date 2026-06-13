@@ -116,7 +116,6 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(data.user));
       setIsAuth(true);
       navigate('/home', { replace: true });
-      window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     }
@@ -139,7 +138,7 @@ export default function Login() {
 
         {/* login card */}
         <div style={styles.right}>
-          <div div className="card">
+          <div className="card">
             <h2 style={styles.cardTitle}>Login</h2>
 
             <label htmlFor="username" style={styles.label}>Username</label>

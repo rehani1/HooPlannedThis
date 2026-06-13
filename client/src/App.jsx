@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useContext } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
+import { AuthContext } from './AuthContext';
 import Login           from './pages/login';
 import Home            from './pages/Home';
 import Events          from './pages/Events';
@@ -18,34 +19,28 @@ import ManageEvents from './pages/ManageEvents';
 
 
 function App() {
-    const [isAuthenticated, setIsAuth] = useState(
-      Boolean(localStorage.getItem('token'))
-    );
-
-  useEffect(() => {
-    const cb = () => setIsAuth(Boolean(localStorage.getItem('token')));
-    window.addEventListener('storage', cb);
-    return () => window.removeEventListener('storage', cb);
-  }, []);
+  const { isAuth } = useContext(AuthContext);
+  const publicRoute = element => (isAuth ? <Navigate to="/home" /> : element);
+  const protectedRoute = element => (isAuth ? element : <Navigate to="/login" />);
 
   return (
       <Routes>
         {/* public routes */}
-        <Route path="/login"    element={isAuthenticated ? <Navigate to="/home" /> : <Login />} />
-        <Route path="/register" element={isAuthenticated ? <Navigate to="/home" /> : <RegisterAccount />} />
+        <Route path="/login"    element={publicRoute(<Login />)} />
+        <Route path="/register" element={publicRoute(<RegisterAccount />)} />
 
         {/* protected routes */}
-        <Route path="/home"               element={isAuthenticated ? <Home />            : <Navigate to="/login" />} />
-        <Route path="/events"             element={isAuthenticated ? <Events />          : <Navigate to="/login" />} />
-        <Route path="/events/createevent" element={isAuthenticated ? <CreateEvent />     : <Navigate to="/login" />} />
-        <Route path="/events/manage" element={isAuthenticated ? <ManageEvents /> : <Navigate to="/login" />} />
-        <Route path="/committees"         element={isAuthenticated ? <Committees />      : <Navigate to="/login" />} />
-        <Route path="/profile"            element={isAuthenticated ? <Profile />         : <Navigate to="/login" />} />
-        <Route path="/classcouncil"       element={isAuthenticated ? <ClassCouncil />    : <Navigate to="/login" />} />
-        <Route path="/advisors"           element={isAuthenticated ? <Advisors />        : <Navigate to="/login" />} />
-        <Route path="/budget"             element={isAuthenticated ? <Budget />          : <Navigate to="/login" />} />
-        <Route path="/volunteersignup"    element={isAuthenticated ? <VolunteerSignUp /> : <Navigate to="/login" />} />
-        <Route path="/admincreatecouncil"    element={isAuthenticated ? <AdminCreateCouncil /> : <Navigate to="/login" />} />
+        <Route path="/home"               element={protectedRoute(<Home />)} />
+        <Route path="/events"             element={protectedRoute(<Events />)} />
+        <Route path="/events/createevent" element={protectedRoute(<CreateEvent />)} />
+        <Route path="/events/manage"      element={protectedRoute(<ManageEvents />)} />
+        <Route path="/committees"         element={protectedRoute(<Committees />)} />
+        <Route path="/profile"            element={protectedRoute(<Profile />)} />
+        <Route path="/classcouncil"       element={protectedRoute(<ClassCouncil />)} />
+        <Route path="/advisors"           element={protectedRoute(<Advisors />)} />
+        <Route path="/budget"             element={protectedRoute(<Budget />)} />
+        <Route path="/volunteersignup"    element={protectedRoute(<VolunteerSignUp />)} />
+        <Route path="/admincreatecouncil" element={protectedRoute(<AdminCreateCouncil />)} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/login" />} />

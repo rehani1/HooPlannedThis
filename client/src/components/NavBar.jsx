@@ -2,7 +2,7 @@
 import React, { useContext } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import './NavBar.css';
-import { FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaCog, FaSignOutAlt } from 'react-icons/fa';
 import { AuthContext } from '../AuthContext';
 
 
@@ -15,7 +15,6 @@ const NavBar = () => {
     localStorage.removeItem('user');
     setIsAuth(false);                        
     navigate('/login', { replace: true });   
-    window.location.reload(); 
 
   };
 
@@ -47,6 +46,5 @@ const NavBar = () => {
 };
 
 export default NavBar;
-
 
 
