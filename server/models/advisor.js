@@ -8,15 +8,7 @@ import { promisify } from 'util';
  * @returns {Promise<number>} the newly created advisor_id
  */
 export async function createAdvisor(data) {
-  const firstName = data.firstName?.trim();
-  const lastName = data.lastName?.trim();
-  const email = data.email?.trim();
-
-  if (!firstName || !lastName || !email) {
-    const err = new Error('First name, last name, and email are required');
-    err.status = 400;
-    throw err;
-  }
+  const advisor = normalizeAdvisor(data);
 
   const conn = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
@@ -33,12 +25,12 @@ export async function createAdvisor(data) {
           advisor_email, building_name, address)
        VALUES (?,?,?,?,?,?)`,
       [
-        firstName,
-        lastName,
-        data.phone?.trim()    || null,
-        email,
-        data.building?.trim() || null,
-        data.address?.trim()  || null
+        advisor.firstName,
+        advisor.lastName,
+        advisor.phone,
+        advisor.email,
+        advisor.building,
+        advisor.address
       ]
     );
 
@@ -50,6 +42,65 @@ export async function createAdvisor(data) {
   } finally {
     conn.release();
   }
+}
+
+function normalizeAdvisor(data = {}) {
+  const firstName = String(data.firstName || '').trim();
+  const lastName = String(data.lastName || '').trim();
+  const email = String(data.email || '').trim();
+
+  if (!firstName || !lastName || !email) {
+    const err = new Error('First name, last name, and email are required');
+    err.status = 400;
+    throw err;
+  }
+
+  return {
+    firstName,
+    lastName,
+    email,
+    phone: String(data.phone || '').trim() || null,
+    building: String(data.building || '').trim() || null,
+    address: String(data.address || '').trim() || null,
+  };
+}
+
+export async function updateAdvisor(advisorId, data) {
+  const id = Number(advisorId);
+  if (!Number.isInteger(id) || id <= 0) {
+    const err = new Error('Invalid advisor id');
+    err.status = 400;
+    throw err;
+  }
+
+  const advisor = normalizeAdvisor(data);
+  const result = await pool.query(
+    `UPDATE Advisor
+        SET advisor_first_name = ?,
+            advisor_last_name = ?,
+            advisor_phone = ?,
+            advisor_email = ?,
+            building_name = ?,
+            address = ?
+      WHERE advisor_id = ?`,
+    [
+      advisor.firstName,
+      advisor.lastName,
+      advisor.phone,
+      advisor.email,
+      advisor.building,
+      advisor.address,
+      id,
+    ]
+  );
+
+  if (!result.affectedRows) {
+    const err = new Error('Advisor not found');
+    err.status = 404;
+    throw err;
+  }
+
+  return { id, ...advisor };
 }
 
 /**

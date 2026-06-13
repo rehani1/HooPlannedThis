@@ -13,11 +13,18 @@ const DEFAULT_ADVISOR_FORM = {
   phone: ''
 };
 
-function CreateAdvisorModal({ isOpen, onClose, onSave, initial }) {
-  const [form, setForm] = useState(initial || DEFAULT_ADVISOR_FORM);
+function advisorFormFromInitial(initial = {}) {
+  const source = initial || {};
+  return Object.fromEntries(
+    Object.keys(DEFAULT_ADVISOR_FORM).map(key => [key, source[key] ?? ''])
+  );
+}
+
+function CreateAdvisorModal({ isOpen, onClose, onSave, initial, mode }) {
+  const [form, setForm] = useState(advisorFormFromInitial(initial));
 
   useEffect(() => {
-    if (isOpen) setForm(initial || DEFAULT_ADVISOR_FORM);
+    if (isOpen) setForm(advisorFormFromInitial(initial));
   }, [initial, isOpen]);
 
   const handleChange = e =>
@@ -47,7 +54,7 @@ function CreateAdvisorModal({ isOpen, onClose, onSave, initial }) {
   return (
     <div style={styles.overlay} onClick={onClose}>
       <form style={styles.modal} onClick={e => e.stopPropagation()} onSubmit={save}>
-        <h2 style={{marginTop:0}}>New Advisor</h2>
+        <h2 style={{marginTop:0}}>{mode === 'edit' ? 'Edit Advisor' : 'New Advisor'}</h2>
 
         <label htmlFor="advisor-first-name" style={styles.label}>First Name *</label>
         <input
@@ -110,7 +117,9 @@ function CreateAdvisorModal({ isOpen, onClose, onSave, initial }) {
 
         <div style={{ textAlign:'right', marginTop:24 }}>
           <button type="button" onClick={onClose} style={styles.cancel}>Cancel</button>
-          <button type="submit" style={styles.save}>Save</button>
+          <button type="submit" style={styles.save}>
+            {mode === 'edit' ? 'Update' : 'Save'}
+          </button>
         </div>
       </form>
     </div>
@@ -122,12 +131,14 @@ CreateAdvisorModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   initial: PropTypes.object,
+  mode: PropTypes.oneOf(['create', 'edit']).isRequired,
 };
 
 /** Main component: list + “Add Advisor” button + modal */
-export default function AddAdvisor({ onAdvisorCreated, authToken }) {
+export default function AddAdvisor({ onAdvisorCreated, onAdvisorUpdated, authToken }) {
   const [advisors, setAdvisors] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [editingAdvisor, setEditingAdvisor] = useState(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/advisors`)
@@ -136,10 +147,30 @@ export default function AddAdvisor({ onAdvisorCreated, authToken }) {
       .catch(e => console.error('GET /api/advisors', e));
   }, []);
 
+  const openCreateModal = () => {
+    setEditingAdvisor(null);
+    setShowModal(true);
+  };
+
+  const openEditModal = advisor => {
+    setEditingAdvisor(advisor);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingAdvisor(null);
+  };
+
   const handleSave = async payload => {
+    const isEditing = Boolean(editingAdvisor);
+    const url = isEditing
+      ? `${API_BASE}/api/advisors/${editingAdvisor.id}`
+      : `${API_BASE}/api/advisors`;
+
     try {
-      const res = await fetch(`${API_BASE}/api/advisors`, {
-        method: 'POST',
+      const res = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
@@ -148,56 +179,105 @@ export default function AddAdvisor({ onAdvisorCreated, authToken }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || `Request failed ${res.status}`);
-      const { id } = data;
-      const advisor = { ...payload, id };
-      setAdvisors(a => [...a, advisor]);
-      onAdvisorCreated?.(advisor);
-      setShowModal(false);
+      const advisor = { ...payload, id: data.id || editingAdvisor?.id };
+
+      if (isEditing) {
+        setAdvisors(list => list.map(item => item.id === advisor.id ? advisor : item));
+        onAdvisorUpdated?.(advisor);
+      } else {
+        setAdvisors(list => [...list, advisor]);
+        onAdvisorCreated?.(advisor);
+      }
+
+      closeModal();
     } catch (err) {
-      console.error('POST /api/advisors', err);
+      console.error(`${isEditing ? 'PUT' : 'POST'} /api/advisors`, err);
       alert(`Error: ${err.message}`);
     }
   };
 
   return (
-    <div>
-      <button onClick={()=>setShowModal(true)} style={styles.addBtn}>
-        + Add New Advisor
-      </button>
+    <div style={styles.wrapper}>
+      <div style={styles.headerRow}>
+        <h2 style={styles.title}>Advisors</h2>
+        <button type="button" onClick={openCreateModal} style={styles.addBtn}>
+          + Add Advisor
+        </button>
+      </div>
 
       <CreateAdvisorModal
         isOpen={showModal}
-        onClose={()=>setShowModal(false)}
+        onClose={closeModal}
         onSave={handleSave}
+        initial={editingAdvisor}
+        mode={editingAdvisor ? 'edit' : 'create'}
       />
 
-      <h3 style={{ marginTop:24 }}>Current Advisors</h3>
-      <ul>
-        {advisors.map(a => (
-          <li key={a.id}>
-            {a.firstName} {a.lastName} - {a.email}
-            {a.building ? ` - ${a.building}` : ''}
-            {a.address ? ` - ${a.address}` : ''}
-            {a.phone ? ` - ${a.phone}` : ''}
-          </li>
-        ))}
-      </ul>
+      {advisors.length ? (
+        <div style={styles.tableWrap}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Email</th>
+                <th style={styles.th}>Building</th>
+                <th style={styles.th}>Phone</th>
+                <th style={styles.th}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {advisors.map(advisor => (
+                <tr key={advisor.id}>
+                  <td style={styles.td}>{advisor.firstName} {advisor.lastName}</td>
+                  <td style={styles.td}>{advisor.email}</td>
+                  <td style={styles.td}>{advisor.building || '-'}</td>
+                  <td style={styles.td}>{advisor.phone || '-'}</td>
+                  <td style={styles.td}>
+                    <button type="button" onClick={() => openEditModal(advisor)} style={styles.editBtn}>
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p style={styles.emptyText}>No advisors yet.</p>
+      )}
     </div>
   );
 }
 
 AddAdvisor.propTypes = {
   onAdvisorCreated: PropTypes.func,
+  onAdvisorUpdated: PropTypes.func,
   authToken: PropTypes.string,
 };
 
 /** Inline styles */
 const styles = {
+  wrapper: {
+    marginTop: 0
+  },
+  headerRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginBottom: 16
+  },
+  title: {
+    margin: 0,
+    color: '#003e83',
+    fontSize: 24,
+    fontWeight: 700
+  },
   addBtn: {
     background: '#4b77d1', color: '#fff',
     padding: '10px 20px', border: 'none',
     borderRadius: 6, cursor: 'pointer',
-    fontSize: 16, marginBottom: 16
+    fontSize: 16
   },
   overlay: {
     position:'fixed', inset:0,
@@ -207,8 +287,14 @@ const styles = {
   },
   modal: {
     background:'#fff', padding:28, borderRadius:10,
-    width:460, maxHeight:'80vh', overflowY:'auto', zIndex:2001
+    width:'min(460px, calc(100vw - 32px))',
+    boxSizing:'border-box',
+    maxHeight:'80vh', overflowY:'auto', zIndex:2001
   },
+  tableWrap: { overflowX: 'auto' },
+  table: { width: '100%', borderCollapse: 'collapse', background: '#fff', border: '1px solid #ddd' },
+  th: { background: '#f7f7f7', fontWeight: 600, padding: 10, border: '1px solid #ddd', textAlign: 'left' },
+  td: { padding: 10, border: '1px solid #ddd' },
   label: { display:'block', fontWeight:600, margin:'14px 0 6px' },
   input: {
     width:'100%', padding:10, fontSize:16,
@@ -224,5 +310,16 @@ const styles = {
     padding:'10px 24px', border:'none',
     background:'#ff8937', color:'#fff',
     cursor:'pointer', borderRadius:6
-  }
+  },
+  editBtn: {
+    background: '#fff',
+    color: '#003e83',
+    border: '1px solid #d7dce2',
+    cursor: 'pointer',
+    padding: '7px 12px',
+    borderRadius: 6,
+    fontSize: 14,
+    fontWeight: 600
+  },
+  emptyText: { margin: 0, color: '#4d5b6a' }
 };

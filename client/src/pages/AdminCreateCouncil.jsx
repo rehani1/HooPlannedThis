@@ -21,6 +21,18 @@ function Modal({ open, onClose, children }) {
   );
 }
 
+function emptyCouncilForm() {
+  return {
+    councilType: '',
+    gradYear:    '',
+    yearFrom:    '',
+    yearTo:      '',
+    budgetTotal: '',
+    committees:  [{ id: null, name: '' }],
+    advisorId:   '',
+  };
+}
+
 export default function AdminCreateCouncil() {
   const navigate = useNavigate();
   const [advisors, setAdvisors] = useState([]);
@@ -39,15 +51,9 @@ export default function AdminCreateCouncil() {
   });
 
   const [showCouncilForm, setShowCouncilForm] = useState(false);
+  const [editingCouncilId, setEditingCouncilId] = useState(null);
 
-  const [form, setForm] = useState({
-    councilType: '',
-    gradYear:    '',
-    yearFrom:    '',
-    yearTo:      '',
-    committees:  [''],
-    advisorId:   '',
-  });
+  const [form, setForm] = useState(emptyCouncilForm);
 
   const getAdminHeaders = useCallback(() => {
     const adminToken = getAdminSetupToken();
@@ -64,6 +70,20 @@ export default function AdminCreateCouncil() {
     navigate('/login', { replace: true });
   };
 
+  const loadAdvisors = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/advisors');
+      setAdvisors(
+        data.map(advisor => ({
+          ...advisor,
+          name: `${advisor.firstName} ${advisor.lastName}`
+        }))
+      );
+    } catch (err) {
+      console.error('Failed to load advisors:', err);
+    }
+  }, []);
+
   const loadCouncils = useCallback(async () => {
     try {
       const { data } = await api.get('/api/councils');
@@ -78,10 +98,14 @@ export default function AdminCreateCouncil() {
         } = row;
         const advisorName = advisors.find(a => a.id === advisor_id)?.name || '';
         buckets[class_name]?.push({
-          id:          `${class_name}-${grad_year}`,
+          id:          row.council_year_id,
+          className:   class_name,
+          advisorId:   advisor_id,
           gradYear:    grad_year,
           acadYear:    academic_year,
+          budgetTotal: row.budget_total,
           committees,
+          committeeRecords: row.committeeRecords || committees.map(name => ({ id: null, name })),
           advisorName,
         });
       });
@@ -110,21 +134,8 @@ export default function AdminCreateCouncil() {
 
     
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get('/api/advisors');
-        
-       setAdvisors(
-          data.map(a => ({
-            id:   a.id,
-            name: `${a.firstName} ${a.lastName}`
-          }))
-        );
-      } catch (err) {
-        console.error('Failed to load advisors:', err);
-      }
-    })();
-  }, []);
+    loadAdvisors();
+  }, [loadAdvisors]);
 
   useEffect(() => {
     loadAccountRequests();
@@ -141,18 +152,45 @@ export default function AdminCreateCouncil() {
   const handleCommitteeChange = (i, val) =>
     setForm(f => ({
       ...f,
-      committees: f.committees.map((c, idx) =>
-        idx === i ? val : c
+      committees: f.committees.map((committee, idx) =>
+        idx === i ? { ...committee, name: val } : committee
       ),
     }));
 
   const addCommittee = () =>
-    setForm(f => ({ ...f, committees: [...f.committees, ''] }));
+    setForm(f => ({ ...f, committees: [...f.committees, { id: null, name: '' }] }));
   const removeCommittee = i =>
     setForm(f => ({
       ...f,
       committees: f.committees.filter((_, idx) => idx !== i),
     }));
+
+  const openCreateCouncilForm = () => {
+    setEditingCouncilId(null);
+    setForm(emptyCouncilForm());
+    setShowCouncilForm(true);
+  };
+
+  const openEditCouncilForm = council => {
+    const [yearFrom = '', yearTo = ''] = String(council.acadYear || '').split('-');
+    setEditingCouncilId(council.id);
+    setForm({
+      councilType: council.className || '',
+      gradYear:    String(council.gradYear || ''),
+      yearFrom,
+      yearTo,
+      budgetTotal: String(council.budgetTotal ?? ''),
+      committees:  council.committeeRecords?.length ? council.committeeRecords : [{ id: null, name: '' }],
+      advisorId:   council.advisorId ? String(council.advisorId) : '',
+    });
+    setShowCouncilForm(true);
+  };
+
+  const closeCouncilForm = () => {
+    setShowCouncilForm(false);
+    setEditingCouncilId(null);
+    setForm(emptyCouncilForm());
+  };
 
   const saveCouncil = async () => {
     const headers = getAdminHeaders();
@@ -163,54 +201,41 @@ export default function AdminCreateCouncil() {
       academicYear:  `${form.yearFrom}-${form.yearTo}`.replace('–', '-'),
       className:     form.councilType,        // “first”/“second”/…
       advisorId:     Number(form.advisorId) || null,
-      committees:    form.committees.filter(Boolean),
+      budgetTotal:    Number(form.budgetTotal) || 0,
+      committees:    form.committees
+        .map(committee => ({
+          id: committee.id || null,
+          name: committee.name.trim(),
+        }))
+        .filter(committee => committee.name),
     };
 
     try {
-      await api.post('/api/councils', payload, {
-        headers,
-      });
+      if (editingCouncilId) {
+        await api.put(`/api/councils/${editingCouncilId}`, payload, { headers });
+      } else {
+        await api.post('/api/councils', payload, { headers });
+      }
 
-      
-      const advisorName =
-        advisors.find(a => a.id === payload.advisorId)?.name || '';
-      setCouncils(c => ({
-        ...c,
-        [form.councilType]: [
-          ...c[form.councilType],
-          {
-            id:          Date.now(),
-            gradYear:    payload.gradYear,
-            acadYear:    payload.academicYear,
-            committees:  payload.committees,
-            advisorName,
-          },
-        ],
-      }));
-
-      setForm({
-        councilType: '',
-        gradYear:    '',
-        yearFrom:    '',
-        yearTo:      '',
-        committees:  [''],
-        advisorId:   '',
-      });
-      setShowCouncilForm(false);
+      await loadCouncils();
+      closeCouncilForm();
     } catch (err) {
       console.error('Failed to save council:', err);
-      alert('There was an error saving this council');
+      alert(err.response?.data?.message || 'There was an error saving this council');
     }
   };
 
-  const saveNewAdvisor = a => {
-    const name = `${a.firstName} ${a.lastName}`;
+  const saveAdvisor = advisor => {
+    const nextAdvisor = {
+      ...advisor,
+      name: `${advisor.firstName} ${advisor.lastName}`
+    };
     setAdvisors(prev =>
-      prev.some(advisor => advisor.id === a.id)
-        ? prev
-        : [...prev, { id: a.id, name }]
+      prev.some(existingAdvisor => existingAdvisor.id === nextAdvisor.id)
+        ? prev.map(existingAdvisor => existingAdvisor.id === nextAdvisor.id ? nextAdvisor : existingAdvisor)
+        : [...prev, nextAdvisor]
     );
-    setForm(f => ({ ...f, advisorId: a.id }));
+    setForm(f => ({ ...f, advisorId: nextAdvisor.id }));
   };
 
   const reviewAccountRequest = async (id, decision) => {
@@ -245,15 +270,7 @@ export default function AdminCreateCouncil() {
       setAccountRequests([]);
       setCouncils({ first: [], second: [], third: [], trustees: [] });
       setAdvisors([]);
-      setForm({
-        councilType: '',
-        gradYear:    '',
-        yearFrom:    '',
-        yearTo:      '',
-        committees:  [''],
-        advisorId:   '',
-      });
-      setShowCouncilForm(false);
+      closeCouncilForm();
       setResetVersion(version => version + 1);
     } catch (err) {
       setResetError(err.response?.data?.message || 'Failed to reset application data');
@@ -263,95 +280,109 @@ export default function AdminCreateCouncil() {
   };
 
   const renderAccountRequests = () => (
-    <>
-      <h2 style={s.tableTitle}>Class Account Requests</h2>
+    <section style={s.panel}>
+      <div style={s.panelHeader}>
+        <h2 style={s.panelTitle}>Class Account Requests</h2>
+      </div>
       {accountRequestError && <p style={s.errorText}>{accountRequestError}</p>}
       {accountRequests.length ? (
-        <table style={s.table}>
-          <thead>
-            <tr>
-              <th style={s.th}>Name</th>
-              <th style={s.th}>Computing ID</th>
-              <th style={s.th}>Class</th>
-              <th style={s.th}>Academic Year</th>
-              <th style={s.th}>Role</th>
-              <th style={s.th}>Committee</th>
-              <th style={s.th}>Email</th>
-              <th style={s.th}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accountRequests.map(request => (
-              <tr key={request.id}>
-                <td style={s.td}>{request.firstName} {request.lastName}</td>
-                <td style={s.td}>{request.username}</td>
-                <td style={s.td}>{request.classId}</td>
-                <td style={s.td}>{request.academicYear}</td>
-                <td style={s.td}>{request.role || '-'}</td>
-                <td style={s.td}>{request.committee || '-'}</td>
-                <td style={s.td}>{request.email}</td>
-                <td style={s.td}>
-                  <div style={s.actionRow}>
-                    <button
-                      type="button"
-                      onClick={() => reviewAccountRequest(request.id, 'approve')}
-                      style={s.approveBtn}
-                      disabled={accountRequestActionId === request.id}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => reviewAccountRequest(request.id, 'deny')}
-                      style={s.denyBtn}
-                      disabled={accountRequestActionId === request.id}
-                    >
-                      Deny
-                    </button>
-                  </div>
-                </td>
+        <div style={s.tableWrap}>
+          <table style={s.table}>
+            <thead>
+              <tr>
+                <th style={s.th}>Name</th>
+                <th style={s.th}>Computing ID</th>
+                <th style={s.th}>Class</th>
+                <th style={s.th}>Academic Year</th>
+                <th style={s.th}>Role</th>
+                <th style={s.th}>Committee</th>
+                <th style={s.th}>Email</th>
+                <th style={s.th}>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {accountRequests.map(request => (
+                <tr key={request.id}>
+                  <td style={s.td}>{request.firstName} {request.lastName}</td>
+                  <td style={s.td}>{request.username}</td>
+                  <td style={s.td}>{request.classId}</td>
+                  <td style={s.td}>{request.academicYear}</td>
+                  <td style={s.td}>{request.role || '-'}</td>
+                  <td style={s.td}>{request.committee || '-'}</td>
+                  <td style={s.td}>{request.email}</td>
+                  <td style={s.td}>
+                    <div style={s.actionRow}>
+                      <button
+                        type="button"
+                        onClick={() => reviewAccountRequest(request.id, 'approve')}
+                        style={s.approveBtn}
+                        disabled={accountRequestActionId === request.id}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => reviewAccountRequest(request.id, 'deny')}
+                        style={s.denyBtn}
+                        disabled={accountRequestActionId === request.id}
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <p>No pending account requests.</p>
+        <p style={s.emptyText}>No pending account requests.</p>
       )}
-    </>
+    </section>
   );
 
   const renderCouncilTable = (label, arr) => (
-    <>
-      <h2 style={s.tableTitle}>{label}</h2>
+    <div style={s.councilBlock}>
+      <h3 style={s.tableTitle}>{label}</h3>
       {arr.length ? (
-        <table style={s.table}>
-          <thead>
-            <tr>
-              <th style={s.th}>Grad Year</th>
-              <th style={s.th}>Academic Year</th>
-              <th style={s.th}>Committees</th>
-              <th style={s.th}>Advisor</th>
-            </tr>
-          </thead>
-          <tbody>
-            {arr.map(c => (
-              <tr key={c.id}>
-                <td style={s.td}>{c.gradYear}</td>
-                <td style={s.td}>{c.acadYear}</td>
-                <td style={s.td}>
-                  {c.committees.map((n, i) => (
-                    <div key={i}>{n}</div>
-                  ))}
-                </td>
-                <td style={s.td}>{c.advisorName}</td>
+        <div style={s.tableWrap}>
+          <table style={s.table}>
+            <thead>
+              <tr>
+                <th style={s.th}>Grad Year</th>
+                <th style={s.th}>Academic Year</th>
+                <th style={s.th}>Budget</th>
+                <th style={s.th}>Committees</th>
+                <th style={s.th}>Advisor</th>
+                <th style={s.th}>Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {arr.map(c => (
+                <tr key={c.id}>
+                  <td style={s.td}>{c.gradYear}</td>
+                  <td style={s.td}>{c.acadYear}</td>
+                  <td style={s.td}>${Number(c.budgetTotal || 0).toLocaleString()}</td>
+                  <td style={s.td}>
+                    {c.committees.map((n, i) => (
+                      <div key={i}>{n}</div>
+                    ))}
+                  </td>
+                  <td style={s.td}>{c.advisorName || '-'}</td>
+                  <td style={s.td}>
+                    <button type="button" onClick={() => openEditCouncilForm(c)} style={s.editBtn}>
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <p>No councils yet.</p>
+        <p style={s.emptyText}>No councils yet.</p>
       )}
-    </>
+    </div>
   );
 
   return (
@@ -362,7 +393,32 @@ export default function AdminCreateCouncil() {
           Back to Login
         </button>
 
-        <h1 style={s.h1}>Admin Create Council Page</h1>
+        <h1 style={s.h1}>Configure Class Councils</h1>
+
+        {renderAccountRequests()}
+
+        <section style={s.panel}>
+          <div style={s.panelHeader}>
+            <h2 style={s.panelTitle}>Class Councils</h2>
+            <button type="button" style={s.createBtn} onClick={openCreateCouncilForm}>
+              + Create Council
+            </button>
+          </div>
+
+          {renderCouncilTable('First-Year Council',   councils.first)}
+          {renderCouncilTable('Second-Year Council',  councils.second)}
+          {renderCouncilTable('Third-Year Council',   councils.third)}
+          {renderCouncilTable('Trustees',             councils.trustees)}
+        </section>
+
+        <section style={s.panel}>
+          <AddAdvisor
+            key={resetVersion}
+            authToken={getAdminSetupToken()}
+            onAdvisorCreated={saveAdvisor}
+            onAdvisorUpdated={saveAdvisor}
+          />
+        </section>
 
         <section style={s.dangerZone}>
           <div>
@@ -382,25 +438,8 @@ export default function AdminCreateCouncil() {
           </button>
         </section>
 
-        {renderAccountRequests()}
-
-        <div style={{ textAlign:'center', marginBottom:32 }}>
-          <button style={s.createBtn} onClick={()=>setShowCouncilForm(true)}>
-            + Create New Council
-          </button>
-        </div>
-
-        {renderCouncilTable('First-Year Council',   councils.first)}
-        {renderCouncilTable('Second-Year Council',  councils.second)}
-        {renderCouncilTable('Third-Year Council',   councils.third)}
-        {renderCouncilTable('Trustees',             councils.trustees)}
-
-        <div style={{ marginTop: 48, textAlign: 'center' }}>
-          <h2 style={{ ...s.tableTitle, marginBottom: 16 }}>Admin Add Advisor</h2>
-        </div>
-
-        <Modal open={showCouncilForm} onClose={()=>setShowCouncilForm(false)}>
-          <h2>New Council</h2>
+        <Modal open={showCouncilForm} onClose={closeCouncilForm}>
+          <h2 style={s.modalTitle}>{editingCouncilId ? 'Edit Council' : 'New Council'}</h2>
 
           <label style={s.label}>Council</label>
           <select name="councilType" value={form.councilType} onChange={handleChange} style={s.select}>
@@ -421,11 +460,22 @@ export default function AdminCreateCouncil() {
             <input name="yearTo"   type="number" value={form.yearTo}   onChange={handleChange} style={s.yearInput}/>
           </div>
 
+          <label style={s.label}>Budget Total</label>
+          <input
+            name="budgetTotal"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.budgetTotal}
+            onChange={handleChange}
+            style={s.select}
+          />
+
           <label style={s.label}>Committees</label>
-          {form.committees.map((c,i)=>(
-            <div key={i} style={s.commRow}>
+          {form.committees.map((committee,i)=>(
+            <div key={committee.id || `new-${i}`} style={s.commRow}>
               <input
-                value={c}
+                value={committee.name}
                 onChange={e=>handleCommitteeChange(i,e.target.value)}
                 style={s.commInput}
               />
@@ -450,16 +500,12 @@ export default function AdminCreateCouncil() {
           </select>
 
           <div style={{ textAlign:'right', marginTop:28 }}>
-            <button onClick={()=>setShowCouncilForm(false)} style={s.cancel}>Cancel</button>
-            <button onClick={saveCouncil} style={s.save}>Save</button>
+            <button type="button" onClick={closeCouncilForm} style={s.cancel}>Cancel</button>
+            <button type="button" onClick={saveCouncil} style={s.save}>
+              {editingCouncilId ? 'Update' : 'Save'}
+            </button>
           </div>
         </Modal>
-
-        <AddAdvisor
-          key={resetVersion}
-          authToken={getAdminSetupToken()}
-          onAdvisorCreated={saveNewAdvisor}
-        />
       </section>
     </main>
   );
@@ -467,19 +513,25 @@ export default function AdminCreateCouncil() {
 
 
 const s = {
-  page:{ minHeight:'100vh', background:'#f6f6f6', padding:'32px 24px', boxSizing:'border-box', fontFamily:'Montserrat, sans-serif' },
+  page:{ minHeight:'100vh', background:'#f3f5f7', padding:'32px 24px', boxSizing:'border-box', fontFamily:'Montserrat, sans-serif' },
   content:{ maxWidth:1100, margin:'0 auto' },
   backBtn:{ display:'inline-flex', alignItems:'center', gap:8, background:'#fff', color:'#003e83', border:'1px solid #d7dce2', padding:'10px 16px', fontSize:15, fontWeight:600, cursor:'pointer', borderRadius:6 },
-  h1:{ textAlign:'center', margin:'24px 0 8px', fontSize:40, fontWeight:700 },
-  dangerZone:{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:24, background:'#fff5f5', border:'1px solid #f2b8b5', borderRadius:8, padding:'18px 20px', margin:'24px 0 32px' },
+  h1:{ textAlign:'center', margin:'24px 0 28px', fontSize:40, fontWeight:700, color:'#003e83' },
+  panel:{ background:'#fff', border:'1px solid #dfe4ea', borderRadius:8, padding:20, marginBottom:24, boxShadow:'0 1px 3px rgba(16, 24, 40, 0.06)' },
+  panelHeader:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:18 },
+  panelTitle:{ margin:0, color:'#003e83', fontSize:24, fontWeight:700 },
+  dangerZone:{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:24, background:'#fff5f5', border:'1px solid #f2b8b5', borderRadius:8, padding:'18px 20px', margin:'0 0 24px' },
   dangerTitle:{ color:'#8f1d18', fontSize:22, fontWeight:700, margin:'0 0 8px' },
   dangerText:{ color:'#5c1f1b', margin:0, lineHeight:1.45 },
   resetBtn:{ flex:'0 0 auto', background:'#b42318', color:'#fff', border:'none', cursor:'pointer', padding:'12px 18px', borderRadius:6, fontSize:16, fontWeight:700 },
-  createBtn:{ background:'#a45614', color:'#fff', border:'none', padding:'12px 24px', fontSize:18, cursor:'pointer', borderRadius:6 },
-  tableTitle:{ marginTop:32, marginBottom:8 },
+  createBtn:{ background:'#003e83', color:'#fff', border:'none', padding:'10px 18px', fontSize:15, fontWeight:700, cursor:'pointer', borderRadius:6 },
+  councilBlock:{ marginTop:20 },
+  tableTitle:{ margin:'0 0 10px', color:'#1b365d', fontSize:18, fontWeight:700 },
+  tableWrap:{ overflowX:'auto' },
   table:{ width:'100%', borderCollapse:'collapse', background:'#fff', border:'1px solid #ddd', borderRadius:8 },
-  th:{ background:'#f7f7f7', fontWeight:600, padding:10, border:'1px solid #ddd' },
+  th:{ background:'#f7f7f7', fontWeight:600, padding:10, border:'1px solid #ddd', textAlign:'left' },
   td:{ padding:10, border:'1px solid #ddd', },
+  modalTitle:{ margin:'0 0 18px', color:'#003e83', fontSize:26, fontWeight:700 },
   label:{ display:'block', fontWeight:600, margin:'18px 0 6px' , textAlign:'left' },
   select:{ width:'100%', padding:10, fontSize:16, border:'1px solid #ccc', borderRadius:6 },
   gradYearInput:{ display:'block', width:'100%', maxWidth:120, padding:8, fontSize:16, border:'1px solid #ccc', borderRadius:6 },
@@ -494,6 +546,8 @@ const s = {
   approveBtn:{ background:'#1f7a4d', color:'#fff', border:'none', cursor:'pointer', padding:'8px 12px', borderRadius:6, fontSize:14 },
   denyBtn:{ background:'#b42318', color:'#fff', border:'none', cursor:'pointer', padding:'8px 12px', borderRadius:6, fontSize:14 },
   errorText:{ color:'#b42318', fontWeight:600 },
+  emptyText:{ margin:0, color:'#4d5b6a' },
+  editBtn:{ background:'#fff', color:'#003e83', border:'1px solid #d7dce2', cursor:'pointer', padding:'7px 12px', borderRadius:6, fontSize:14, fontWeight:600 },
   cancel:{ marginRight:14, padding:'10px 22px', border:'1px solid #888', background:'#fff', cursor:'pointer', borderRadius:6 },
   save:{ padding:'10px 24px', border:'none', background:'#ff8937', color:'#fff', cursor:'pointer', borderRadius:6 },
 };
@@ -501,5 +555,6 @@ const s = {
 
 const modalBackdrop = { position:'fixed', inset:0, background:'rgba(0,0,0,.45)', zIndex:1000 };
 const modalBox = { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
-                   background:'#fff', padding:28, borderRadius:10, width:460,
+                   background:'#fff', padding:28, borderRadius:10, width:'min(460px, calc(100vw - 32px))',
+                   boxSizing:'border-box',
                    maxHeight:'80vh', overflowY:'auto', zIndex:1001 };

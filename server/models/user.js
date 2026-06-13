@@ -121,14 +121,36 @@ function normalizeCommitteeName(committee) {
 }
 
 async function findCouncilYear(query, classId, academicYear) {
+  const gradYear = Number(classId);
+  if (!Number.isInteger(gradYear)) return null;
+
   const councilRows = await query(
     `SELECT council_year_id
        FROM CouncilYear
       WHERE grad_year = ? AND academic_year = ?
       LIMIT 1`,
-    [classId, academicYear]
+    [gradYear, academicYear]
   );
   return councilRows[0]?.council_year_id;
+}
+
+async function ensureRequestedCommitteeExists(query, councilYearId, committee) {
+  const committeeName = normalizeCommitteeName(committee);
+  if (!committeeName) return;
+
+  const committeeRows = await query(
+    `SELECT committee_id
+       FROM Committee
+      WHERE council_year_id = ? AND committee_name = ?
+      LIMIT 1`,
+    [councilYearId, committeeName]
+  );
+
+  if (!committeeRows.length) {
+    const err = new Error('Selected committee was not found for this council year');
+    err.status = 400;
+    throw err;
+  }
 }
 
 async function ensureAccountDoesNotExist(query, username, email) {
@@ -244,6 +266,7 @@ export async function createAccountRequest({
 
     await ensureAccountDoesNotExist(query, username, email);
     await ensurePendingRequestDoesNotExist(query, username, email);
+    await ensureRequestedCommitteeExists(query, councilYearId, committee);
 
     const result = await query(
       `INSERT INTO AccountRequest

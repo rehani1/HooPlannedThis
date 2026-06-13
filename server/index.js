@@ -7,10 +7,10 @@ import jwt from 'jsonwebtoken'
 import morgan from 'morgan';
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { createCouncilYear, getAllCouncilYears } from './models/council.js';
+import { createCouncilYear, getAllCouncilYears, updateCouncilYear } from './models/council.js';
 
 import committeesRouter from './models/committees.js';
-import { createAdvisor, getAdvisors } from './models/advisor.js';
+import { createAdvisor, getAdvisors, updateAdvisor } from './models/advisor.js';
 import { getCommitteeBudgets, getTotalCouncilBudget } from './models/budget.js';
 import { resetApplicationData } from './models/adminReset.js';
 
@@ -160,12 +160,28 @@ app.post('/api/items', async (req, res) => {
 
 app.post('/api/councils', requireAdminSetup, async (req, res) => {
   try {
-    const { gradYear, academicYear, className, advisorId, committees } = req.body;
-    await createCouncilYear({ gradYear, academicYear, className, advisorId, committees });
+    const { gradYear, academicYear, className, advisorId, budgetTotal, committees } = req.body;
+    await createCouncilYear({ gradYear, academicYear, className, advisorId, budgetTotal, committees });
     res.status(201).end();
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
     console.error(err);
     res.status(500).json({ message: err.message });
+  }
+});
+
+app.put('/api/councils/:id', requireAdminSetup, async (req, res) => {
+  try {
+    const result = await updateCouncilYear(req.params.id, req.body);
+    res.json(result);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('PUT /api/councils/:id error', err);
+    res.status(500).json({ message: 'Failed to update council' });
   }
 });
 
@@ -373,6 +389,19 @@ app.post('/api/advisors', requireAdminSetup, async (req, res) => {
     }
     console.error('POST /api/advisors error', err);
     res.status(500).json({ message: 'Failed to create advisor' });
+  }
+});
+
+app.put('/api/advisors/:id', requireAdminSetup, async (req, res) => {
+  try {
+    const advisor = await updateAdvisor(req.params.id, req.body);
+    res.json(advisor);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('PUT /api/advisors/:id error', err);
+    res.status(500).json({ message: 'Failed to update advisor' });
   }
 });
 

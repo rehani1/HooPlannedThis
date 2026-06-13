@@ -27,6 +27,7 @@ const NavBar = () => {
           <li><Link to="/classcouncil">Class Council</Link></li>
           <li><Link to="/events">Events</Link></li>
           <li><Link to="/advisors">Advisors</Link></li>
+          <li><Link to="/budget">Budget</Link></li>
         </ul>
       </div>
 
@@ -45,4 +46,3 @@ const NavBar = () => {
 };
 
 export default NavBar;
-

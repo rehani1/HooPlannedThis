@@ -1,6 +1,5 @@
 // src/pages/ClassCouncil.jsx
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 
 const EXECUTIVE = [
@@ -100,34 +99,11 @@ function CommitteeCard({ committee }) {
 }
 
 export default function ClassCouncil() {
-  const navigate = useNavigate();
-
   return (
     <Layout>
       <h1 style={{ fontWeight: 700, fontSize: 32, marginBottom: 24, textAlign: 'left', color: '#003366' }}>
         Class Council 2025 - 2026
       </h1>
-
-      {/* Budget Navigation Button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 30 }}>
-        <button
-          onClick={() => navigate('/budget')}
-          style={{
-            backgroundColor: '#003366',       
-            color: '#ffffff',                  
-            fontFamily: 'Monteserrat, sans-serif',  
-            fontSize: '18px',                  
-            fontWeight: '600',                 
-            padding: '12px 24px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer',
-            letterSpacing: '0.5px'
-          }}
-        >
-          View Budget Overview
-        </button>
-      </div>
 
       {/* Executive Board */}
       <div style={{ display: 'flex', justifyContent: 'flex-start' }}>

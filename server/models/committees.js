@@ -11,15 +11,25 @@ router.get('/', async (req, res) => {
   }
 
   try {
+    const councilRows = await pool.query(
+      `SELECT council_year_id
+         FROM CouncilYear
+        WHERE academic_year = ?
+          AND grad_year = ?
+        LIMIT 1`,
+      [academicYear, gradYear]
+    );
+
+    if (!councilRows.length) {
+      return res.status(404).json({ message: 'Council year not found for selected class and academic year' });
+    }
 
     const rows = await pool.query(
-      `SELECT c.committee_id, c.committee_name
-         FROM Committee c
-         JOIN CouncilYear cy ON c.council_year_id = cy.council_year_id
-        WHERE cy.academic_year = ?
-          AND cy.grad_year = ?
-        ORDER BY c.committee_name`,
-      [academicYear, gradYear]
+      `SELECT committee_id, committee_name
+         FROM Committee
+        WHERE council_year_id = ?
+        ORDER BY committee_name`,
+      [councilRows[0].council_year_id]
     );
     res.json(rows);                 
   } catch (err) {

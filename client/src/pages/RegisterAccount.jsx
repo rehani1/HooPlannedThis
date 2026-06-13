@@ -21,6 +21,8 @@ const roleOptions = [
 
 export default function RegisterAccount() {
   const [committeeOptions, setCommitteeOptions] = useState([]);
+  const [councilStatus, setCouncilStatus] = useState('idle');
+  const [councilMessage, setCouncilMessage] = useState('');
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '',
     username: '', password: '',
@@ -44,29 +46,40 @@ export default function RegisterAccount() {
   useEffect(() => {
     if (!hasFullYears || !formData.classId.trim()) {
       setCommitteeOptions([]);
+      setCouncilStatus('idle');
+      setCouncilMessage('');
       return;
     }
 
     async function fetchCommittees() {
+      setCouncilStatus('loading');
+      setCouncilMessage('');
+
       const url = `${API_BASE}/api/committees` +
                   `?academicYear=${encodeURIComponent(academicYear)}` +
                   `&gradYear=${encodeURIComponent(formData.classId.trim())}`;
 
       try {
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`Request failed ${res.status}`);
+        if (!res.ok) {
+          const message = (await res.json().catch(() => null))?.message || `Request failed ${res.status}`;
+          throw new Error(message);
+        }
 
         const data = await res.json();
 
         const list = Array.isArray(data) ? data : [data];
 
         setCommitteeOptions([
-          'Not in Committee – Pres / VP / Treas / Exec',
+          'Not in Committee - Pres / VP / Treas / Exec',
           ...list.map(c => c.committee_name ?? c)
         ]);
+        setCouncilStatus('valid');
       } catch (err) {
         console.error(' fetchCommittees error:', err);
         setCommitteeOptions([]);
+        setCouncilStatus('invalid');
+        setCouncilMessage(err.message || 'No configured council was found for that class and academic year.');
       }
     }
 
@@ -75,11 +88,23 @@ export default function RegisterAccount() {
 
   
   const handleChange = e =>
-    setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
+    setFormData(p => {
+      const next = { ...p, [e.target.name]: e.target.value };
+      if (['classId', 'academicYearStart', 'academicYearEnd'].includes(e.target.name)) {
+        next.committee = '';
+      }
+      return next;
+    });
 
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
+
+    if (councilStatus !== 'valid') {
+      setError('Select a configured class council before requesting an account.');
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/register`, {
         method: 'POST',
@@ -221,17 +246,22 @@ export default function RegisterAccount() {
               className="input-field"
               value={formData.committee}
               onChange={handleChange}
-              disabled={!hasFullYears || !formData.classId.trim()}
+              disabled={councilStatus !== 'valid'}
               required
             >
-              <option value="" disabled>Select committee…</option>
+              <option value="" disabled>
+                {councilStatus === 'loading' ? 'Checking council...' : 'Select committee...'}
+              </option>
               {committeeOptions.map((c, i) => (
                 <option key={i} value={c}>{c}</option>
               ))}
             </select>
+            {councilStatus === 'invalid' && (
+              <p className="error-message">{councilMessage}</p>
+            )}
           </div>
 
-          <button type="submit">Submit Request</button>
+          <button type="submit" disabled={councilStatus !== 'valid'}>Submit Request</button>
           {error && <p className="error-message">{error}</p>}
         </form>
       </div>
