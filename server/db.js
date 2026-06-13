@@ -1,4 +1,4 @@
-import mysql from 'mysql'
+import mysql from 'mysql2'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import { promisify } from 'util'
@@ -103,9 +103,12 @@ export function describeDatabaseError(err) {
       return 'Database network connection failed. Check RDS security groups, subnets, port, and DB_HOST.'
     case 'ER_ACCESS_DENIED_ERROR':
       return 'Database authentication failed. Check DB_USER and DB_PASSWORD.'
+    case 'ER_NOT_SUPPORTED_AUTH_MODE':
+      return 'Database authentication plugin is not supported by the configured MySQL client.'
     case 'ER_BAD_DB_ERROR':
       return 'Database name was not found. Check DB_NAME.'
     case 'HANDSHAKE_NO_SSL_SUPPORT':
+    case 'HANDSHAKE_SSL_ERROR':
     case 'DEPTH_ZERO_SELF_SIGNED_CERT':
     case 'UNABLE_TO_VERIFY_LEAF_SIGNATURE':
     case 'CERT_HAS_EXPIRED':

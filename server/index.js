@@ -5,6 +5,8 @@ import dotenv from 'dotenv'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import morgan from 'morgan';
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 
 import committeesRouter from './models/committees.js';
@@ -32,6 +34,7 @@ const app         = express()
 const PORT        = process.env.PORT || 4000
 const JWT_SECRET  = process.env.JWT_SECRET
 if (!JWT_SECRET) throw new Error('Missing JWT_SECRET')
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173']
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -276,6 +279,14 @@ app.post('/api/advisors', async (req, res) => {
   }
 });
 
+if (process.env.NODE_ENV === 'production' || process.env.SERVE_CLIENT === 'true') {
+  const clientDistPath = path.resolve(__dirname, '../client/dist')
+  app.use(express.static(clientDistPath))
+  app.use((req, res, next) => {
+    if (!['GET', 'HEAD'].includes(req.method) || req.path.startsWith('/api/')) return next()
+    res.sendFile(path.join(clientDistPath, 'index.html'))
+  })
+}
 
 app.use((err, req, res, next) => {
   console.error(err);

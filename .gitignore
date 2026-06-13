@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+*.pem
 
 # Logs and runtime output
 *.log
