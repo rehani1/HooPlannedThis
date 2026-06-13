@@ -2,7 +2,7 @@
 import React, { useContext } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import './NavBar.css';
-import { FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { FaSignOutAlt } from 'react-icons/fa';
 import { AuthContext } from '../AuthContext';
 
 
@@ -33,7 +33,6 @@ const NavBar = () => {
       <div className="nav-section">
         <h4 className="section-title">Settings</h4>
         <ul className="nav-list">
-          <li><FaCog className="icon" /><Link to="/admincreatecouncil">Admin</Link></li>
           <li>
             <button onClick={handleLogout} className="link-button">
               <FaSignOutAlt className="icon" /> Log Out
@@ -46,5 +45,4 @@ const NavBar = () => {
 };
 
 export default NavBar;
-
 

@@ -90,7 +90,9 @@ export default function RegisterAccount() {
         const msg = (await res.json())?.message ?? res.statusText;
         throw new Error(msg);
       }
-      navigate('/login');
+      navigate('/login', {
+        state: { notice: 'Account request submitted. An admin must approve it before you can log in.' },
+      });
     } catch (err) {
       setError(err.message || 'Registration failed');
     }
@@ -229,7 +231,7 @@ export default function RegisterAccount() {
             </select>
           </div>
 
-          <button type="submit">Register</button>
+          <button type="submit">Submit Request</button>
           {error && <p className="error-message">{error}</p>}
         </form>
       </div>

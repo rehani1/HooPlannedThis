@@ -16,11 +16,15 @@ import Budget          from './pages/Budget';
 import VolunteerSignUp from './pages/VolunteerSignUp';
 import AdminCreateCouncil from './pages/AdminCreateCouncil';
 import ManageEvents from './pages/ManageEvents';
-
+import { hasAdminSetupAccess } from './adminSetupAuth';
 
 function App() {
   const { isAuth } = useContext(AuthContext);
   const publicRoute = element => (isAuth ? <Navigate to="/home" /> : element);
+  const adminSetupRoute = element =>
+    hasAdminSetupAccess()
+      ? element
+      : <Navigate to="/login" replace />;
 
   return (
       <Routes>
@@ -39,7 +43,7 @@ function App() {
         <Route path="/advisors"           element={<Advisors />} />
         <Route path="/budget"             element={<Budget />} />
         <Route path="/volunteersignup"    element={<VolunteerSignUp />} />
-        <Route path="/admincreatecouncil" element={<AdminCreateCouncil />} />
+        <Route path="/admincreatecouncil" element={adminSetupRoute(<AdminCreateCouncil />)} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/login" />} />

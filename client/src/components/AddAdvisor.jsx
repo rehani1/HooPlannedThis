@@ -81,7 +81,7 @@ CreateAdvisorModal.propTypes = {
 };
 
 /** Main component: list + “Add Advisor” button + modal */
-export default function AddAdvisor({ onAdvisorCreated }) {
+export default function AddAdvisor({ onAdvisorCreated, authToken }) {
   const [advisors, setAdvisors] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -96,7 +96,10 @@ export default function AddAdvisor({ onAdvisorCreated }) {
     try {
       const res = await fetch(`${API_BASE}/api/advisors`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
@@ -138,6 +141,7 @@ export default function AddAdvisor({ onAdvisorCreated }) {
 
 AddAdvisor.propTypes = {
   onAdvisorCreated: PropTypes.func,
+  authToken: PropTypes.string,
 };
 
 /** Inline styles */

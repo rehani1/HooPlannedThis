@@ -20,7 +20,10 @@ import {
 
 import {
   getUserByUsername,
-  createUser,
+  createAccountRequest,
+  listPendingAccountRequests,
+  approveAccountRequest,
+  denyAccountRequest,
 } from './models/user.js'
 import {
   checkDatabaseConnection,
@@ -34,6 +37,9 @@ const app         = express()
 const PORT        = process.env.PORT || 4000
 const JWT_SECRET  = process.env.JWT_SECRET
 if (!JWT_SECRET) throw new Error('Missing JWT_SECRET')
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password'
+const ADMIN_SETUP_SCOPE = 'admin_setup'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173']
@@ -57,6 +63,26 @@ app.use(
 )
 app.use(express.json());
 
+function requireAdminSetup(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Admin credentials required' });
+  }
+
+  try {
+    const payload = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+    if (payload.scope !== ADMIN_SETUP_SCOPE) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    return next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Admin session expired' });
+    }
+    return res.status(403).json({ message: 'Invalid admin session' });
+  }
+}
+
 app.get('/api/health', async (req, res) => {
   try {
     await checkDatabaseConnection();
@@ -71,6 +97,20 @@ app.get('/api/health', async (req, res) => {
     });
     res.status(503).json({ status: 'error', database: 'unavailable', message });
   }
+});
+
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ message: 'Invalid admin credentials' });
+  }
+
+  const token = jwt.sign(
+    { sub: ADMIN_USERNAME, scope: ADMIN_SETUP_SCOPE },
+    JWT_SECRET,
+    { expiresIn: '2h' }
+  );
+  return res.json({ token });
 });
 /**
  * GET  /api/items?event_id=27
@@ -103,7 +143,7 @@ app.post('/api/items', async (req, res) => {
   }
 });
 
-app.post('/api/councils', async (req, res) => {
+app.post('/api/councils', requireAdminSetup, async (req, res) => {
   try {
     const { gradYear, academicYear, className, advisorId, committees } = req.body;
     await createCouncilYear({ gradYear, academicYear, className, advisorId, committees });
@@ -111,6 +151,42 @@ app.post('/api/councils', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/account-requests', requireAdminSetup, async (req, res) => {
+  try {
+    const requests = await listPendingAccountRequests();
+    res.json(requests);
+  } catch (err) {
+    console.error('GET /api/account-requests error', err);
+    res.status(500).json({ message: 'Failed to load account requests' });
+  }
+});
+
+app.post('/api/account-requests/:id/approve', requireAdminSetup, async (req, res) => {
+  try {
+    const result = await approveAccountRequest(req.params.id);
+    res.json({ message: 'Account request approved', userId: result.id });
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('POST /api/account-requests/:id/approve error', err);
+    res.status(500).json({ message: 'Failed to approve account request' });
+  }
+});
+
+app.post('/api/account-requests/:id/deny', requireAdminSetup, async (req, res) => {
+  try {
+    await denyAccountRequest(req.params.id);
+    res.json({ message: 'Account request denied' });
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('POST /api/account-requests/:id/deny error', err);
+    res.status(500).json({ message: 'Failed to deny account request' });
   }
 });
 
@@ -144,7 +220,7 @@ app.post('/api/register', async (req, res) => {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await createUser({
+  const request = await createAccountRequest({
       firstName,
       lastName,
       email,
@@ -156,7 +232,10 @@ app.post('/api/register', async (req, res) => {
       committee
   });
 
-  return res.status(201).json({ message: 'User registered', userId: user.id });
+  return res.status(201).json({
+    message: 'Account request submitted for approval',
+    requestId: request.id,
+  });
   } catch (err) {
     if (err.status) {
       return res.status(err.status).json({ message: err.message });
@@ -269,7 +348,7 @@ app.get('/api/advisors', async (req, res) => {
 });
 app.use(express.json());
 // POST /api/advisors  
-app.post('/api/advisors', async (req, res) => {
+app.post('/api/advisors', requireAdminSetup, async (req, res) => {
   try {
     const id = await createAdvisor(req.body);
     res.status(201).json({ id });
