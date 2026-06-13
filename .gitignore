@@ -1,0 +1,20 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and runtime output
+*.log
+*.out
+
+# Dependencies and build output
+node_modules/
+client/node_modules/
+server/node_modules/
+dist/
+client/dist/
+
+# Local machine files
+.DS_Store
+.vscode/*
+!.vscode/extensions.json

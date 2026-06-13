@@ -20,6 +20,11 @@ import {
   getUserByUsername,
   createUser,
 } from './models/user.js'
+import {
+  checkDatabaseConnection,
+  describeDatabaseError,
+  getDatabaseConfigSummary,
+} from './db.js'
 
 dotenv.config()
 
@@ -48,6 +53,22 @@ app.use(
   })
 )
 app.use(express.json());
+
+app.get('/api/health', async (req, res) => {
+  try {
+    await checkDatabaseConnection();
+    res.json({ status: 'ok', database: 'ok' });
+  } catch (err) {
+    const message = describeDatabaseError(err);
+    console.error('Database health check failed:', {
+      code: err?.code,
+      errno: err?.errno,
+      fatal: err?.fatal,
+      message,
+    });
+    res.status(503).json({ status: 'error', database: 'unavailable', message });
+  }
+});
 /**
  * GET  /api/items?event_id=27
  */
@@ -238,4 +259,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Server error' });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+app.listen(PORT, () => {
+  const dbSummary = getDatabaseConfigSummary();
+  console.log(`Server running on port ${PORT}`)
+  console.log(
+    `Database configured for ${dbSummary.host}:${dbSummary.port}/${dbSummary.database} ` +
+    `(ssl=${dbSummary.sslMode}, pool=${dbSummary.connectionLimit})`
+  )
+})

@@ -21,7 +21,6 @@ import ManageEvents from './pages/ManageEvents';
 function App() {
   const { isAuth } = useContext(AuthContext);
   const publicRoute = element => (isAuth ? <Navigate to="/home" /> : element);
-  const protectedRoute = element => (isAuth ? element : <Navigate to="/login" />);
 
   return (
       <Routes>
@@ -30,17 +29,17 @@ function App() {
         <Route path="/register" element={publicRoute(<RegisterAccount />)} />
 
         {/* protected routes */}
-        <Route path="/home"               element={protectedRoute(<Home />)} />
-        <Route path="/events"             element={protectedRoute(<Events />)} />
-        <Route path="/events/createevent" element={protectedRoute(<CreateEvent />)} />
-        <Route path="/events/manage"      element={protectedRoute(<ManageEvents />)} />
-        <Route path="/committees"         element={protectedRoute(<Committees />)} />
-        <Route path="/profile"            element={protectedRoute(<Profile />)} />
-        <Route path="/classcouncil"       element={protectedRoute(<ClassCouncil />)} />
-        <Route path="/advisors"           element={protectedRoute(<Advisors />)} />
-        <Route path="/budget"             element={protectedRoute(<Budget />)} />
-        <Route path="/volunteersignup"    element={protectedRoute(<VolunteerSignUp />)} />
-        <Route path="/admincreatecouncil" element={protectedRoute(<AdminCreateCouncil />)} />
+        <Route path="/home"               element={<Home />} />
+        <Route path="/events"             element={<Events />} />
+        <Route path="/events/createevent" element={<CreateEvent />} />
+        <Route path="/events/manage"      element={<ManageEvents />} />
+        <Route path="/committees"         element={<Committees />} />
+        <Route path="/profile"            element={<Profile />} />
+        <Route path="/classcouncil"       element={<ClassCouncil />} />
+        <Route path="/advisors"           element={<Advisors />} />
+        <Route path="/budget"             element={<Budget />} />
+        <Route path="/volunteersignup"    element={<VolunteerSignUp />} />
+        <Route path="/admincreatecouncil" element={<AdminCreateCouncil />} />
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/login" />} />
