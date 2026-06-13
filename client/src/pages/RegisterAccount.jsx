@@ -52,16 +52,12 @@ export default function RegisterAccount() {
                   `?academicYear=${encodeURIComponent(academicYear)}` +
                   `&gradYear=${encodeURIComponent(formData.classId.trim())}`;
 
-      console.log(' Fetching committees from:', url);
       try {
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        console.log(' Status:', res.status, res.statusText);
         if (!res.ok) throw new Error(`Request failed ${res.status}`);
 
         const data = await res.json();
-        console.log('← JSON body:', data);
 
-        /* --- NEW: ensure we always have an array --- */
         const list = Array.isArray(data) ? data : [data];
 
         setCommitteeOptions([

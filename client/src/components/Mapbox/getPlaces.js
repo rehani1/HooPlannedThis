@@ -16,7 +16,6 @@ export default async function getPlaces(query) {
         },
       }
     );
-    console.log("Places API response:", response.data);
     return response.data.features;
   } catch (error) {
     console.error("There was an error while fetching places:", error);

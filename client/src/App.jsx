@@ -18,10 +18,6 @@ import ManageEvents from './pages/ManageEvents';
 
 
 function App() {
-  // const [isAuthenticated, setIsAuth] = useState(
-  //   true);
-  //   // Boolean(localStorage.getItem('token')) ;
-
     const [isAuthenticated, setIsAuth] = useState(
       Boolean(localStorage.getItem('token'))
     );

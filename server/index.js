@@ -181,7 +181,6 @@ app.get('/api/events', async (req, res, next) => {
  
     const rows = await getEvents(limit, order);
 
-    console.log(`→ GET /api/events served ${rows.length} rows`);
     return res.json(rows);
   } catch (err) {
     console.error('Error in GET /api/events:', err);
@@ -223,10 +222,8 @@ app.get('/api/advisors', async (req, res) => {
 app.use(express.json());
 // POST /api/advisors  
 app.post('/api/advisors', async (req, res) => {
-  console.log('⏳ POST /api/advisors body →', req.body);
   try {
     const id = await createAdvisor(req.body);
-    console.log('✅ Created advisor with id', id);
     res.status(201).json({ id });
   } catch (err) {
     console.error('POST /api/advisors error', err);

@@ -13,7 +13,6 @@ export default function Advisors() {
   useEffect(() => {
     async function fetchAdvisors() {
       const url = `${API_BASE}/api/advisors`;
-      console.log(' Fetching advisors from:', url);
       try {
         const res = await fetch(url, { headers: { Accept: 'application/json' } });
         if (!res.ok) throw new Error(`Request failed ${res.status}`);

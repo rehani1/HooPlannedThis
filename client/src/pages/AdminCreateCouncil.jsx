@@ -20,9 +20,6 @@ function Modal({ open, onClose, children }) {
 }
 
 export default function AdminCreateCouncil() {
-  // const [advisors, setAdvisors] = useState([
-  //   { id: 1, name: 'Alice Smith' },
-  //   { id: 2, name: 'Carmen Nguyen' },
     const [advisors, setAdvisors] = useState([]);
 
   const [councils, setCouncils] = useState({
@@ -75,8 +72,6 @@ export default function AdminCreateCouncil() {
             advisor_id,
             committees,
           } = row;
-          // const advisorName =
-          //   advisors.find(a => a.id === advisor_id)?.name || '';
           const advisorName = advisors.find(a => a.id === advisor_id)?.name || '';
           buckets[class_name]?.push({
             id:          `${class_name}-${grad_year}`,
@@ -217,20 +212,6 @@ export default function AdminCreateCouncil() {
 
       <div style={{ marginTop: 48, textAlign: 'center' }}>
         <h2 style={{ ...s.tableTitle, marginBottom: 16 }}>Admin Add Advisor</h2>
-        {/* <button
-          style={{ 
-            padding: '10px 20px',
-            backgroundColor: '#4b77d1',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: 16
-          }}
-          onClick={() => setShowAdvisorModal(true)}
-        >
-          + Add New Advisor
-        </button> */}
       </div>
 
       <Modal open={showCouncilForm} onClose={()=>setShowCouncilForm(false)}>
@@ -281,7 +262,6 @@ export default function AdminCreateCouncil() {
           {advisors.map(a => (
             <option key={a.id} value={a.id}>{a.name}</option>
           ))}
-          {/* <option value="new">＋ Add New Advisor</option> */}
         </select>
         
 

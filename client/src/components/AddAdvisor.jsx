@@ -36,7 +36,6 @@ function CreateAdvisorModal({ isOpen, onClose, onSave, initial }) {
       email:     form.email,
       phone:     form.phone,
     };
-    console.log('🛰️ CreateAdvisor payload →', payload);
     onSave(payload);
   };
 
@@ -100,11 +99,9 @@ export default function AddAdvisor({ onAdvisorCreated }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      console.log('📡 Response status:', res.status, res.statusText);
-      const text = await res.text();
-      console.log('📡 Response body:', text);
-      if (!res.ok) throw new Error(text || res.status);
-      const { id } = JSON.parse(text);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Request failed ${res.status}`);
+      const { id } = data;
       const advisor = { ...payload, id };
       setAdvisors(a => [...a, advisor]);
       onAdvisorCreated?.(advisor);

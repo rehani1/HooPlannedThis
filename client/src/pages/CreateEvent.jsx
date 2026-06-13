@@ -63,8 +63,6 @@ export default function CreateEvent() {
       supplies: []
     };
 
-    console.log('Payload →', JSON.stringify(payload, null, 2));
-
     try {
       const res = await fetch(`${API_BASE}/api/events`, {
         method: 'POST',
@@ -72,12 +70,9 @@ export default function CreateEvent() {
         body: JSON.stringify(payload)
       });
 
-      console.log(' Response status:', res.status, res.statusText);
-      const text = await res.text();
-      console.log(' Response body:', text);
-
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const { id } = JSON.parse(text);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Server error: ${res.status}`);
+      const { id } = data;
       alert(`Event created with ID ${id}`);
     } catch (err) {
       console.error(' Failed to create event:', err);

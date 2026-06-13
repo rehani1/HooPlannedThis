@@ -8,8 +8,6 @@ const CalendarComponent = () => {
 
   const handleDateChange = (newDate) => {
     setDate(newDate);
-    console.log('Selected date:', newDate);
-   
   };
 
   return (

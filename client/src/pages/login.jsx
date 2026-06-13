@@ -57,15 +57,6 @@ const styles = {
     alignItems: 'center',
   },
   tagline: { fontSize: 18, color: COLORS.navy, lineHeight: 1.6, marginTop: 18 },
-  // card: {
-  //   background: COLORS.white,
-  //   borderRadius: 12,
-  //   padding: 40,
-  //   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-  //   border: `1px solid #f1f3f4`,
-  //   width: '100%',
-  //   boxSizing: 'border-box',
-  // },
   cardTitle: { fontSize: 28, fontWeight: 700, color: COLORS.navy, margin: '0 0 28px', textAlign: 'center' },
   label: { fontSize: 18, fontWeight: 600, color: COLORS.navy, marginBottom: 12, display: 'block', textAlign: 'left' },
   primaryBtn: {

@@ -145,7 +145,6 @@ export default function ManageEvents() {
                             <span style={{ color:'#666' }}>Qty: {qty}</span>
 
                             <div style={{ fontSize:'0.9rem', marginTop:4 }}>
-                              {/* <span>Unit: ${unitPrice.toFixed(2)}</span>{' • '} */}
                               <span>Total: ${total}</span>
                             </div>
 
