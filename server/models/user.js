@@ -7,16 +7,55 @@ export async function getUserByUsername(username) {
     `SELECT cm.computing_id AS id,
             cm.computing_id AS username,
             cm.password_hash AS passwordHash,
+            cy.council_year_id AS councilYearId,
+            cy.class_name AS councilClassName,
+            cy.academic_year AS academicYear,
             cy.grad_year AS gradYear,
-            MIN(cmem.committee_id) AS committeeId
+            MIN(cmem.committee_id) AS committeeId,
+            MIN(cmem.membership_role) AS committeeRole
        FROM CouncilMember cm
        LEFT JOIN CouncilYear cy ON cm.council_year_id = cy.council_year_id
        LEFT JOIN CommitteeMembership cmem ON cm.computing_id = cmem.computing_id
       WHERE cm.computing_id = ?
-      GROUP BY cm.computing_id, cm.password_hash, cy.grad_year`,
+      GROUP BY cm.computing_id, cm.password_hash, cy.council_year_id, cy.class_name, cy.academic_year, cy.grad_year`,
     [username]
   )
-  return rows[0] || null
+  const user = rows[0];
+  if (!user) return null;
+
+  const committeeMemberships = await pool.query(
+    `SELECT c.committee_id AS committeeId,
+            c.committee_name AS committeeName,
+            c.council_year_id AS councilYearId,
+            cmem.membership_role AS role,
+            cmem.start_date AS startDate,
+            cmem.end_date AS endDate
+       FROM CommitteeMembership cmem
+       JOIN Committee c ON cmem.committee_id = c.committee_id
+      WHERE cmem.computing_id = ?
+      ORDER BY c.committee_name`,
+    [username]
+  );
+
+  const executivePositions = await pool.query(
+    `SELECT ep.executive_position_id AS id,
+            ep.council_year_id AS councilYearId,
+            ep.role,
+            cy.class_name AS councilClassName,
+            cy.grad_year AS gradYear,
+            cy.academic_year AS academicYear
+       FROM ExecutivePosition ep
+       JOIN CouncilYear cy ON ep.council_year_id = cy.council_year_id
+      WHERE ep.computing_id = ?
+      ORDER BY cy.academic_year DESC, ep.role`,
+    [username]
+  );
+
+  return {
+    ...user,
+    committeeMemberships,
+    executivePositions,
+  };
 }
 
 export async function createUser({

@@ -9,7 +9,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { createCouncilYear, getAllCouncilYears, updateCouncilYear } from './models/council.js';
 
-import committeesRouter from './models/committees.js';
+import committeesRouter, { getCommitteeById, updateCommittee } from './models/committees.js';
 import { createAdvisor, getAdvisors, updateAdvisor } from './models/advisor.js';
 import { getCommitteeBudgets, getTotalCouncilBudget } from './models/budget.js';
 import { resetApplicationData } from './models/adminReset.js';
@@ -82,6 +82,65 @@ function requireAdminSetup(req, res, next) {
     }
     return res.status(403).json({ message: 'Invalid admin session' });
   }
+}
+
+function publicUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    committeeId: user.committeeId,
+    committeeRole: user.committeeRole,
+    committeeMemberships: user.committeeMemberships || [],
+    executivePositions: user.executivePositions || [],
+    councilYearId: user.councilYearId,
+    councilClassName: user.councilClassName,
+    academicYear: user.academicYear,
+    gradYear: user.gradYear,
+  };
+}
+
+async function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Login required' });
+  }
+
+  try {
+    const payload = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+    if (payload.scope === ADMIN_SETUP_SCOPE) {
+      return res.status(403).json({ message: 'Member login required' });
+    }
+
+    const user = await getUserByUsername(payload.sub);
+    if (!user) return res.status(401).json({ message: 'Account not found' });
+
+    req.user = user;
+    return next();
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Session expired' });
+    }
+    console.error('Auth error:', err);
+    return res.status(403).json({ message: 'Invalid token' });
+  }
+}
+
+function isCommitteeLeadRole(role) {
+  const value = String(role || '').toLowerCase().replace(/[\s-]+/g, '_');
+  return ['committee_chair', 'chair', 'committee_lead', 'lead'].includes(value);
+}
+
+function canManageCommittee(user, committee) {
+  const councilYearId = Number(committee.councilYearId);
+  const executiveForCouncil = (user.executivePositions || []).some(position =>
+    Number(position.councilYearId) === councilYearId
+  );
+  const leadForCommittee = (user.committeeMemberships || []).some(membership =>
+    Number(membership.committeeId) === Number(committee.id) &&
+    isCommitteeLeadRole(membership.role)
+  );
+
+  return executiveForCouncil || leadForCommittee;
 }
 
 app.get('/api/health', async (req, res) => {
@@ -283,27 +342,15 @@ app.post('/api/login', async (req, res) => {
   const match = await bcrypt.compare(password, user.passwordHash)
   if (!match) return res.status(401).json({ message: 'Invalid credentials' })
   const token = jwt.sign(
-    { sub: user.id, username: user.username, committeeId: user.committeeId, gradYear:    user.gradYear},
+    { sub: user.id, username: user.username },
     JWT_SECRET,
     { expiresIn: '2h' }
   )
-  res.json({ token, user: { id: user.id, username: user.username, committeeId: user.committeeId, gradYear:  user.gradYear } })
+  res.json({ token, user: publicUser(user) })
 })
 
-app.get('/api/profile', (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).end();
-  const token = authHeader.split(' ')[1];
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    res.json({ id: payload.sub, username: payload.username });
-  } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Session expired' });
-    }
-    console.error('Profile error:', err);
-    res.status(403).json({ message: 'Invalid token' });
-  }
+app.get('/api/profile', requireAuth, (req, res) => {
+  res.json(publicUser(req.user));
 });
 
 
@@ -333,11 +380,20 @@ app.post('/api/events', async (req, res) => {
 
 app.get('/api/events', async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 3;
+    const requestedLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isInteger(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 3;
     const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
+    const committeeId = req.query.committeeId === undefined
+      ? null
+      : Number(req.query.committeeId);
 
- 
-    const rows = await getEvents(limit, order);
+    if (committeeId !== null && (!Number.isInteger(committeeId) || committeeId <= 0)) {
+      return res.status(400).json({ message: 'committeeId must be a positive integer' });
+    }
+
+    const rows = await getEvents(limit, order, committeeId);
 
     return res.json(rows);
   } catch (err) {
@@ -365,6 +421,25 @@ app.get('/api/budget/allocations', async (req, res) => {
     res.sendStatus(500);
   }
 });
+
+app.put('/api/committees/:id', requireAuth, async (req, res) => {
+  try {
+    const committee = await getCommitteeById(req.params.id);
+    if (!canManageCommittee(req.user, committee)) {
+      return res.status(403).json({ message: 'You can only edit committees you lead' });
+    }
+
+    const updated = await updateCommittee(req.params.id, req.body);
+    res.json(updated);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('PUT /api/committees/:id error', err);
+    res.status(500).json({ message: 'Failed to update committee' });
+  }
+});
+
 app.use('/api/committees', committeesRouter);
 
 // GET /api/advisors  

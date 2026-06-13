@@ -37,7 +37,8 @@ function App() {
         <Route path="/events"             element={<Events />} />
         <Route path="/events/createevent" element={<CreateEvent />} />
         <Route path="/events/manage"      element={<ManageEvents />} />
-        <Route path="/committees"         element={<Committees />} />
+        <Route path="/committee"          element={<Committees />} />
+        <Route path="/committees"         element={<Navigate to="/committee" replace />} />
         <Route path="/profile"            element={<Profile />} />
         <Route path="/classcouncil"       element={<ClassCouncil />} />
         <Route path="/advisors"           element={<Advisors />} />
