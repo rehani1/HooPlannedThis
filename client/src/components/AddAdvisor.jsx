@@ -23,52 +23,96 @@ function CreateAdvisorModal({ isOpen, onClose, onSave, initial }) {
   const handleChange = e =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
-  const save = () => {
-    if (!form.firstName || !form.lastName) {
-      alert('First and last name required');
+  const save = event => {
+    event.preventDefault();
+
+    const payload = {
+      firstName: form.firstName.trim(),
+      lastName:  form.lastName.trim(),
+      email:     form.email.trim(),
+      building:  form.building.trim(),
+      address:   form.address.trim(),
+      phone:     form.phone.trim(),
+    };
+
+    if (!payload.firstName || !payload.lastName || !payload.email) {
+      alert('First name, last name, and email are required');
       return;
     }
-    const payload = {
-      firstName: form.firstName,
-      lastName:  form.lastName,
-      building:  form.building,
-      address:   form.address,
-      email:     form.email,
-      phone:     form.phone,
-    };
+
     onSave(payload);
   };
 
   if (!isOpen) return null;
   return (
     <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
+      <form style={styles.modal} onClick={e => e.stopPropagation()} onSubmit={save}>
         <h2 style={{marginTop:0}}>New Advisor</h2>
 
-        <label style={styles.label}>First Name *</label>
-        <input name="firstName" value={form.firstName} onChange={handleChange} style={styles.input} />
+        <label htmlFor="advisor-first-name" style={styles.label}>First Name *</label>
+        <input
+          id="advisor-first-name"
+          name="firstName"
+          value={form.firstName}
+          onChange={handleChange}
+          style={styles.input}
+          required
+        />
 
-        <label style={styles.label}>Last Name *</label>
-        <input name="lastName" value={form.lastName} onChange={handleChange} style={styles.input} />
+        <label htmlFor="advisor-last-name" style={styles.label}>Last Name *</label>
+        <input
+          id="advisor-last-name"
+          name="lastName"
+          value={form.lastName}
+          onChange={handleChange}
+          style={styles.input}
+          required
+        />
 
-        <label style={styles.label}>Building</label>
-        <input name="building" value={form.building} onChange={handleChange} style={styles.input} />
+        <label htmlFor="advisor-email" style={styles.label}>Email *</label>
+        <input
+          id="advisor-email"
+          name="email"
+          type="email"
+          value={form.email}
+          onChange={handleChange}
+          style={styles.input}
+          required
+        />
 
-        <label style={styles.label}>Address</label>
-        <input name="address" value={form.address} onChange={handleChange}
-               placeholder="Street, City, State, Zip" style={styles.input} />
+        <label htmlFor="advisor-building" style={styles.label}>Building</label>
+        <input
+          id="advisor-building"
+          name="building"
+          value={form.building}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
-        <label style={styles.label}>Email</label>
-        <input name="email" type="email" value={form.email} onChange={handleChange} style={styles.input} />
+        <label htmlFor="advisor-address" style={styles.label}>Address</label>
+        <input
+          id="advisor-address"
+          name="address"
+          value={form.address}
+          onChange={handleChange}
+          placeholder="Street, City, State, Zip"
+          style={styles.input}
+        />
 
-        <label style={styles.label}>Phone</label>
-        <input name="phone" value={form.phone} onChange={handleChange} style={styles.input} />
+        <label htmlFor="advisor-phone" style={styles.label}>Phone</label>
+        <input
+          id="advisor-phone"
+          name="phone"
+          value={form.phone}
+          onChange={handleChange}
+          style={styles.input}
+        />
 
         <div style={{ textAlign:'right', marginTop:24 }}>
-          <button onClick={onClose} style={styles.cancel}>Cancel</button>
-          <button onClick={save}    style={styles.save}>Save</button>
+          <button type="button" onClick={onClose} style={styles.cancel}>Cancel</button>
+          <button type="submit" style={styles.save}>Save</button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
@@ -131,7 +175,10 @@ export default function AddAdvisor({ onAdvisorCreated, authToken }) {
       <ul>
         {advisors.map(a => (
           <li key={a.id}>
-            {a.firstName} {a.lastName} — {a.building} — {a.address}
+            {a.firstName} {a.lastName} - {a.email}
+            {a.building ? ` - ${a.building}` : ''}
+            {a.address ? ` - ${a.address}` : ''}
+            {a.phone ? ` - ${a.phone}` : ''}
           </li>
         ))}
       </ul>

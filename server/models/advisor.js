@@ -4,10 +4,20 @@ import { promisify } from 'util';
 
 /**
  * Inserts a new advisor into the database.
- * @param {{ firstName: string, lastName: string, phone?: string, email?: string, building?: string, address?: string }} data
+ * @param {{ firstName: string, lastName: string, email: string, phone?: string, building?: string, address?: string }} data
  * @returns {Promise<number>} the newly created advisor_id
  */
 export async function createAdvisor(data) {
+  const firstName = data.firstName?.trim();
+  const lastName = data.lastName?.trim();
+  const email = data.email?.trim();
+
+  if (!firstName || !lastName || !email) {
+    const err = new Error('First name, last name, and email are required');
+    err.status = 400;
+    throw err;
+  }
+
   const conn = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
   const beginTransaction = promisify(conn.beginTransaction).bind(conn);
@@ -23,12 +33,12 @@ export async function createAdvisor(data) {
           advisor_email, building_name, address)
        VALUES (?,?,?,?,?,?)`,
       [
-        data.firstName,
-        data.lastName,
-        data.phone        || null,
-        data.email        || null,
-        data.building     || null,
-        data.address      || null
+        firstName,
+        lastName,
+        data.phone?.trim()    || null,
+        email,
+        data.building?.trim() || null,
+        data.address?.trim()  || null
       ]
     );
 

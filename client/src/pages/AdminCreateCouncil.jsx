@@ -27,6 +27,9 @@ export default function AdminCreateCouncil() {
   const [accountRequests, setAccountRequests] = useState([]);
   const [accountRequestError, setAccountRequestError] = useState('');
   const [accountRequestActionId, setAccountRequestActionId] = useState(null);
+  const [resetError, setResetError] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetVersion, setResetVersion] = useState(0);
 
   const [councils, setCouncils] = useState({
     first:    [],
@@ -60,6 +63,33 @@ export default function AdminCreateCouncil() {
     clearAdminSetupSession();
     navigate('/login', { replace: true });
   };
+
+  const loadCouncils = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/councils');
+      const buckets = { first: [], second: [], third: [], trustees: [] };
+      data.forEach(row => {
+        const {
+          grad_year,
+          academic_year,
+          class_name,
+          advisor_id,
+          committees,
+        } = row;
+        const advisorName = advisors.find(a => a.id === advisor_id)?.name || '';
+        buckets[class_name]?.push({
+          id:          `${class_name}-${grad_year}`,
+          gradYear:    grad_year,
+          acadYear:    academic_year,
+          committees,
+          advisorName,
+        });
+      });
+      setCouncils(buckets);
+    } catch (err) {
+      console.error('Failed to load councils:', err);
+    }
+  }, [advisors]);
 
   const loadAccountRequests = useCallback(async () => {
     const headers = getAdminHeaders();
@@ -102,33 +132,8 @@ export default function AdminCreateCouncil() {
 
   
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get('/api/councils');
-        const buckets = { first: [], second: [], third: [], trustees: [] };
-        data.forEach(row => {
-          const {
-            grad_year,
-            academic_year,
-            class_name,
-            advisor_id,
-            committees,
-          } = row;
-          const advisorName = advisors.find(a => a.id === advisor_id)?.name || '';
-          buckets[class_name]?.push({
-            id:          `${class_name}-${grad_year}`,
-            gradYear:    grad_year,
-            acadYear:    academic_year,
-            committees,                  
-            advisorName,
-          });
-        });
-        setCouncils(buckets);
-      } catch (err) {
-        console.error('Failed to load councils:', err);
-      }
-    })();
-  }, [advisors]);
+    loadCouncils();
+  }, [loadCouncils]);
 
   const handleChange = e =>
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -222,6 +227,38 @@ export default function AdminCreateCouncil() {
       setAccountRequestError(err.response?.data?.message || `Failed to ${decision} account request`);
     } finally {
       setAccountRequestActionId(null);
+    }
+  };
+
+  const handleMasterReset = async () => {
+    const headers = getAdminHeaders();
+    if (!headers) return;
+
+    const confirmed = window.prompt('This deletes all councils, members, account requests, events, budgets, advisors, supplies, vendors, locations, documents, advertisements, and volunteer data. Type RESET to continue.');
+    if (confirmed !== 'RESET') return;
+
+    setIsResetting(true);
+    setResetError('');
+
+    try {
+      await api.post('/api/admin/master-reset', { confirmation: 'RESET' }, { headers });
+      setAccountRequests([]);
+      setCouncils({ first: [], second: [], third: [], trustees: [] });
+      setAdvisors([]);
+      setForm({
+        councilType: '',
+        gradYear:    '',
+        yearFrom:    '',
+        yearTo:      '',
+        committees:  [''],
+        advisorId:   '',
+      });
+      setShowCouncilForm(false);
+      setResetVersion(version => version + 1);
+    } catch (err) {
+      setResetError(err.response?.data?.message || 'Failed to reset application data');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -327,6 +364,24 @@ export default function AdminCreateCouncil() {
 
         <h1 style={s.h1}>Admin Create Council Page</h1>
 
+        <section style={s.dangerZone}>
+          <div>
+            <h2 style={s.dangerTitle}>Master Reset</h2>
+            <p style={s.dangerText}>
+              Deletes all councils, members, account requests, events, budgets, advisors, supplies, vendors, locations, documents, advertisements, and volunteer data.
+            </p>
+            {resetError && <p style={s.errorText}>{resetError}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={handleMasterReset}
+            style={s.resetBtn}
+            disabled={isResetting}
+          >
+            {isResetting ? 'Resetting...' : 'Master Reset'}
+          </button>
+        </section>
+
         {renderAccountRequests()}
 
         <div style={{ textAlign:'center', marginBottom:32 }}>
@@ -401,6 +456,7 @@ export default function AdminCreateCouncil() {
         </Modal>
 
         <AddAdvisor
+          key={resetVersion}
           authToken={getAdminSetupToken()}
           onAdvisorCreated={saveNewAdvisor}
         />
@@ -415,6 +471,10 @@ const s = {
   content:{ maxWidth:1100, margin:'0 auto' },
   backBtn:{ display:'inline-flex', alignItems:'center', gap:8, background:'#fff', color:'#003e83', border:'1px solid #d7dce2', padding:'10px 16px', fontSize:15, fontWeight:600, cursor:'pointer', borderRadius:6 },
   h1:{ textAlign:'center', margin:'24px 0 8px', fontSize:40, fontWeight:700 },
+  dangerZone:{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:24, background:'#fff5f5', border:'1px solid #f2b8b5', borderRadius:8, padding:'18px 20px', margin:'24px 0 32px' },
+  dangerTitle:{ color:'#8f1d18', fontSize:22, fontWeight:700, margin:'0 0 8px' },
+  dangerText:{ color:'#5c1f1b', margin:0, lineHeight:1.45 },
+  resetBtn:{ flex:'0 0 auto', background:'#b42318', color:'#fff', border:'none', cursor:'pointer', padding:'12px 18px', borderRadius:6, fontSize:16, fontWeight:700 },
   createBtn:{ background:'#a45614', color:'#fff', border:'none', padding:'12px 24px', fontSize:18, cursor:'pointer', borderRadius:6 },
   tableTitle:{ marginTop:32, marginBottom:8 },
   table:{ width:'100%', borderCollapse:'collapse', background:'#fff', border:'1px solid #ddd', borderRadius:8 },

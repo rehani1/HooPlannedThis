@@ -261,12 +261,12 @@ export default function Login() {
               <p style={styles.notice}>{location.state.notice}</p>
             )}
 
-            <label htmlFor="username" style={styles.label}>Username</label>
+            <label htmlFor="username" style={styles.label}>Computing ID</label>
             <input
               id="username"
               name="username"
               className="input-field"
-              placeholder="Enter your username"
+              placeholder="Enter your computing ID"
               value={creds.username}
               onChange={e => setCreds({ ...creds, username: e.target.value })}
             />

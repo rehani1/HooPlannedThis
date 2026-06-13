@@ -12,6 +12,7 @@ import { createCouncilYear, getAllCouncilYears } from './models/council.js';
 import committeesRouter from './models/committees.js';
 import { createAdvisor, getAdvisors } from './models/advisor.js';
 import { getCommitteeBudgets, getTotalCouncilBudget } from './models/budget.js';
+import { resetApplicationData } from './models/adminReset.js';
 
 import {
     listItemsByEvent,
@@ -111,6 +112,20 @@ app.post('/api/admin/login', (req, res) => {
     { expiresIn: '2h' }
   );
   return res.json({ token });
+});
+
+app.post('/api/admin/master-reset', requireAdminSetup, async (req, res) => {
+  if (req.body?.confirmation !== 'RESET') {
+    return res.status(400).json({ message: 'Type RESET to confirm the master reset' });
+  }
+
+  try {
+    const deleted = await resetApplicationData();
+    res.json({ message: 'Application data reset', deleted });
+  } catch (err) {
+    console.error('POST /api/admin/master-reset error', err);
+    res.status(500).json({ message: 'Failed to reset application data' });
+  }
 });
 /**
  * GET  /api/items?event_id=27
@@ -353,6 +368,9 @@ app.post('/api/advisors', requireAdminSetup, async (req, res) => {
     const id = await createAdvisor(req.body);
     res.status(201).json({ id });
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
     console.error('POST /api/advisors error', err);
     res.status(500).json({ message: 'Failed to create advisor' });
   }
