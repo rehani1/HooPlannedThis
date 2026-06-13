@@ -10,12 +10,16 @@ import { promisify } from 'util';
 export async function createAdvisor(data) {
   const conn = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
+  const beginTransaction = promisify(conn.beginTransaction).bind(conn);
+  const commit = promisify(conn.commit).bind(conn);
+  const rollback = promisify(conn.rollback).bind(conn);
+
   try {
-    await conn.beginTransaction();
+    await beginTransaction();
 
     const res = await query(
       `INSERT INTO Advisor
-         (advisor_first_name, advisor_last_name, advisor_number,
+         (advisor_first_name, advisor_last_name, advisor_phone,
           advisor_email, building_name, address)
        VALUES (?,?,?,?,?,?)`,
       [
@@ -28,10 +32,10 @@ export async function createAdvisor(data) {
       ]
     );
 
-    await conn.commit();
+    await commit();
     return res.insertId;
   } catch (err) {
-    await conn.rollback();
+    await rollback();
     throw err;
   } finally {
     conn.release();
@@ -51,7 +55,7 @@ export async function getAdvisors() {
          advisor_id         AS id,
          advisor_first_name AS firstName,
          advisor_last_name  AS lastName,
-         advisor_number     AS phone,
+         advisor_phone      AS phone,
          advisor_email      AS email,
          building_name      AS building,
          address

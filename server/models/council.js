@@ -12,40 +12,65 @@ export async function createCouncilYear({
 }) {
   const conn  = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
+  const beginTransaction = promisify(conn.beginTransaction).bind(conn);
+  const commit = promisify(conn.commit).bind(conn);
+  const rollback = promisify(conn.rollback).bind(conn);
 
   try {
-    await conn.beginTransaction();
+    await beginTransaction();
 
-
-    await query(
-      `INSERT INTO CouncilYear (grad_year, academic_year, class_name, advisor_id)
-       VALUES (?,?,?,?)
-       ON DUPLICATE KEY UPDATE
-         class_name = VALUES(class_name),
-         advisor_id = VALUES(advisor_id)`,
-      [gradYear, academicYear, className, advisorId || null]
-    );
-
-
-    await query(
-      `DELETE FROM Committee
-         WHERE grad_year = ? AND academic_year = ?`,
+    const existingRows = await query(
+      `SELECT council_year_id
+         FROM CouncilYear
+        WHERE grad_year = ? AND academic_year = ?
+        LIMIT 1`,
       [gradYear, academicYear]
     );
 
-    // 3) Insert committees
-    for (const name of committees.filter(Boolean)) {
+    let councilYearId = existingRows[0]?.council_year_id;
+
+    if (councilYearId) {
       await query(
-        `INSERT INTO Committee (grad_year, academic_year, committee_name)
+        `UPDATE CouncilYear
+            SET class_name = ?, advisor_id = ?
+          WHERE council_year_id = ?`,
+        [className, advisorId || null, councilYearId]
+      );
+    } else {
+      const result = await query(
+        `INSERT INTO CouncilYear (grad_year, academic_year, class_name, advisor_id)
+         VALUES (?,?,?,?)`,
+        [gradYear, academicYear, className, advisorId || null]
+      );
+      councilYearId = result.insertId;
+    }
+
+    await query(
+      `DELETE FROM Committee
+         WHERE council_year_id = ?`,
+      [councilYearId]
+    );
+
+    await query(
+      `INSERT INTO CouncilBudget (council_year_id, budget_total)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE budget_total = budget_total`,
+      [councilYearId, 0]
+    );
+
+    const committeeNames = [...new Set(committees.map(name => String(name).trim()).filter(Boolean))];
+    for (const name of committeeNames) {
+      await query(
+        `INSERT INTO Committee (council_year_id, committee_name, budget_allocated)
          VALUES (?,?,?)`,
-        [gradYear, academicYear, name]
+        [councilYearId, name, 0]
       );
     }
 
-    await conn.commit();
-    return { gradYear, academicYear };
+    await commit();
+    return { councilYearId, gradYear, academicYear };
   } catch (err) {
-    await conn.rollback();
+    await rollback();
     throw err;
   } finally {
     conn.release();
@@ -57,10 +82,19 @@ export async function getAllCouncilYears() {
   const query = promisify(conn.query).bind(conn);
 
   try {
-    const years  = await query('SELECT * FROM CouncilYear');
-    const comms  = await query('SELECT * FROM Committee');
+    const years  = await query(
+      `SELECT council_year_id, grad_year, academic_year, class_name, advisor_id
+         FROM CouncilYear
+        ORDER BY academic_year, grad_year`
+    );
+    const comms  = await query(
+      `SELECT council_year_id, committee_name
+         FROM Committee
+        ORDER BY committee_name`
+    );
 
     return years.map((y) => ({
+      council_year_id: y.council_year_id,
       grad_year:     y.grad_year,
       academic_year: y.academic_year,
       class_name:    y.class_name,
@@ -68,8 +102,7 @@ export async function getAllCouncilYears() {
       committees:    comms
                       .filter(
                         (c) =>
-                          c.grad_year === y.grad_year &&
-                          c.academic_year === y.academic_year
+                          c.council_year_id === y.council_year_id
                       )
                       .map((c) => c.committee_name),
     }));

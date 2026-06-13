@@ -124,9 +124,19 @@ app.get('/api/councils', async (req, res) => {
 
 app.post('/api/register', async (req, res) => {
   try {
-  const { firstName, lastName, email, classId, username, password } = req.body;
+  const {
+    firstName,
+    lastName,
+    email,
+    classId,
+    academicYear,
+    username,
+    password,
+    role,
+    committee,
+  } = req.body;
 
-  if (!firstName || !lastName || !email || !classId || !username || !password) {
+  if (!firstName || !lastName || !email || !classId || !academicYear || !username || !password) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -136,14 +146,17 @@ app.post('/api/register', async (req, res) => {
       lastName,
       email,
       classId,
+      academicYear,
       username,
-      passwordHash
+      passwordHash,
+      role,
+      committee
   });
 
   return res.status(201).json({ message: 'User registered', userId: user.id });
   } catch (err) {
-  if (err.status === 409) {           
-  return res.status(409).json({ message: err.message });
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
     }
     console.error(err);
     res.sendStatus(500);
@@ -183,7 +196,18 @@ app.get('/api/profile', (req, res) => {
 
 app.post('/api/events', async (req, res) => {
   try {
-    const id = await createEvent(req.body);
+    const authHeader = req.headers.authorization;
+    let createdBy = null;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        createdBy = jwt.verify(authHeader.split(' ')[1], JWT_SECRET).sub;
+      } catch {
+        createdBy = null;
+      }
+    }
+
+    const id = await createEvent({ ...req.body, createdBy });
     return res.status(201).json({ id });
   } catch (err) {
     if (err.code === 'ER_BAD_NULL_ERROR') {

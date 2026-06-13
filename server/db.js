@@ -98,6 +98,7 @@ export function describeDatabaseError(err) {
       return 'Database host could not be resolved. Check DB_HOST and DNS/VPC configuration.'
     case 'ECONNREFUSED':
     case 'ETIMEDOUT':
+    case 'PROTOCOL_SEQUENCE_TIMEOUT':
     case 'PROTOCOL_CONNECTION_LOST':
       return 'Database network connection failed. Check RDS security groups, subnets, port, and DB_HOST.'
     case 'ER_ACCESS_DENIED_ERROR':

@@ -5,7 +5,7 @@ const toNumber = value => Number(value) || 0;
 export async function getTotalCouncilBudget() {
   const rows = await pool.query(
     `SELECT COALESCE(SUM(budget_allocated), 0) AS total_allocated
-       FROM Event`
+       FROM CouncilEvent`
   );
 
   return {
@@ -17,8 +17,8 @@ export async function getCommitteeBudgets() {
   const rows = await pool.query(
     `SELECT e.committee_id AS committeeId,
             COALESCE(c.committee_name, CONCAT('Committee ', e.committee_id)) AS committeeName,
-            COALESCE(SUM(budget_allocated), 0) AS allocated
-       FROM Event e
+            COALESCE(SUM(e.budget_allocated), 0) AS allocated
+       FROM CouncilEvent e
        LEFT JOIN Committee c ON e.committee_id = c.committee_id
       GROUP BY e.committee_id, c.committee_name
       ORDER BY c.committee_name, e.committee_id`

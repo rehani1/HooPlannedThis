@@ -13,10 +13,12 @@ router.get('/', async (req, res) => {
   try {
 
     const rows = await pool.query(
-      `SELECT committee_name
-         FROM Committee
-        WHERE academic_year = ?
-          AND grad_year     = ?`,
+      `SELECT c.committee_id, c.committee_name
+         FROM Committee c
+         JOIN CouncilYear cy ON c.council_year_id = cy.council_year_id
+        WHERE cy.academic_year = ?
+          AND cy.grad_year = ?
+        ORDER BY c.committee_name`,
       [academicYear, gradYear]
     );
     res.json(rows);                 
