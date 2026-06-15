@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PackagePlus, Pencil, Trash2, X } from 'lucide-react';
+import { FileText, Megaphone, PackagePlus, Pencil, Trash2, UserRound, X } from 'lucide-react';
 import Layout from '../components/Layout';
 import AutoCompleteInput from '../components/Mapbox/AutoCompleteInput';
 import MapboxMap from '../components/Mapbox/Map';
@@ -52,6 +52,27 @@ const EMPTY_ITEM = {
   vendorContactAddress: '',
   vendorContactEmail: '',
   vendorContactPhone: '',
+};
+
+const EMPTY_CONTACT = {
+  computingId: '',
+  contactRole: '',
+  isPrimary: false,
+};
+
+const EMPTY_ADVERTISEMENT = {
+  platform: '',
+  advertisementType: '',
+  contentLink: '',
+  scheduledPostDate: '',
+  actualPostDate: '',
+  status: 'planned',
+};
+
+const EMPTY_DOCUMENT = {
+  documentName: '',
+  documentType: '',
+  fileUrl: '',
 };
 
 function readStoredUser() {
@@ -285,6 +306,9 @@ export default function CreateEvent() {
   const [location, setLocation] = useState(EMPTY_LOCATION);
   const [mapAddress, setMapAddress] = useState(DEFAULT_ADDRESS);
   const [items, setItems] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [advertisements, setAdvertisements] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [user, setUser] = useState(() => readStoredUser());
   const [councils, setCouncils] = useState([]);
   const [loadingCommittees, setLoadingCommittees] = useState(true);
@@ -411,6 +435,36 @@ export default function CreateEvent() {
     setItems(current => current.filter((_, itemIndex) => itemIndex !== index));
   };
 
+  const addContact = () => setContacts(current => [...current, EMPTY_CONTACT]);
+  const updateContact = (index, field, value) => {
+    setContacts(current => current.map((contact, contactIndex) =>
+      contactIndex === index ? { ...contact, [field]: value } : contact
+    ));
+  };
+  const removeContact = index => {
+    setContacts(current => current.filter((_, contactIndex) => contactIndex !== index));
+  };
+
+  const addAdvertisement = () => setAdvertisements(current => [...current, EMPTY_ADVERTISEMENT]);
+  const updateAdvertisement = (index, field, value) => {
+    setAdvertisements(current => current.map((advertisement, advertisementIndex) =>
+      advertisementIndex === index ? { ...advertisement, [field]: value } : advertisement
+    ));
+  };
+  const removeAdvertisement = index => {
+    setAdvertisements(current => current.filter((_, advertisementIndex) => advertisementIndex !== index));
+  };
+
+  const addDocument = () => setDocuments(current => [...current, EMPTY_DOCUMENT]);
+  const updateDocument = (index, field, value) => {
+    setDocuments(current => current.map((document, documentIndex) =>
+      documentIndex === index ? { ...document, [field]: value } : document
+    ));
+  };
+  const removeDocument = index => {
+    setDocuments(current => current.filter((_, documentIndex) => documentIndex !== index));
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
@@ -422,6 +476,15 @@ export default function CreateEvent() {
 
     if (!location.locationName.trim()) {
       setError('Location name is required');
+      return;
+    }
+
+    const hasPartialDocument = documents.some(document =>
+      (document.documentName.trim() || document.fileUrl.trim()) &&
+      (!document.documentName.trim() || !document.fileUrl.trim())
+    );
+    if (hasPartialDocument) {
+      setError('Each document needs both a document name and file URL');
       return;
     }
 
@@ -459,6 +522,34 @@ export default function CreateEvent() {
             }
           : null,
       })),
+      contacts: contacts
+        .filter(contact => contact.computingId.trim())
+        .map(contact => ({
+          computingId: contact.computingId.trim(),
+          contactRole: contact.contactRole.trim() || null,
+          isPrimary: contact.isPrimary,
+        })),
+      advertisements: advertisements
+        .filter(advertisement =>
+          advertisement.platform.trim() ||
+          advertisement.advertisementType.trim() ||
+          advertisement.contentLink.trim()
+        )
+        .map(advertisement => ({
+          platform: advertisement.platform.trim() || null,
+          advertisementType: advertisement.advertisementType.trim() || null,
+          contentLink: advertisement.contentLink.trim() || null,
+          scheduledPostDate: advertisement.scheduledPostDate || null,
+          actualPostDate: advertisement.actualPostDate || null,
+          status: advertisement.status,
+        })),
+      documents: documents
+        .filter(document => document.documentName.trim() || document.fileUrl.trim())
+        .map(document => ({
+          documentName: document.documentName.trim(),
+          documentType: document.documentType.trim() || null,
+          fileUrl: document.fileUrl.trim(),
+        })),
     };
 
     setIsSubmitting(true);
@@ -633,6 +724,199 @@ export default function CreateEvent() {
 
           <section style={styles.panel}>
             <div style={styles.panelHeader}>
+              <h2 style={styles.sectionTitle}>Event Contacts</h2>
+              <button type="button" onClick={addContact} style={styles.itemButton}>
+                <UserRound size={18} />
+                Add Contact
+              </button>
+            </div>
+
+            {contacts.length ? (
+              <div style={styles.detailList}>
+                {contacts.map((contact, index) => (
+                  <article key={`contact-${index}`} style={styles.detailCard}>
+                    <div style={styles.formGrid}>
+                      <label style={styles.label}>
+                        Computing ID *
+                        <input
+                          value={contact.computingId}
+                          onChange={event => updateContact(index, 'computingId', event.target.value)}
+                          style={styles.input}
+                        />
+                      </label>
+                      <label style={styles.label}>
+                        Contact Role
+                        <input
+                          value={contact.contactRole}
+                          onChange={event => updateContact(index, 'contactRole', event.target.value)}
+                          placeholder="Planning lead"
+                          style={styles.input}
+                        />
+                      </label>
+                    </div>
+                    <div style={styles.detailActions}>
+                      <label style={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={contact.isPrimary}
+                          onChange={event => updateContact(index, 'isPrimary', event.target.checked)}
+                        />
+                        Primary contact
+                      </label>
+                      <button type="button" onClick={() => removeContact(index)} style={styles.iconButton} aria-label="Remove contact">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p style={styles.bodyText}>No event contacts added yet.</p>
+            )}
+          </section>
+
+          <section style={styles.panel}>
+            <div style={styles.panelHeader}>
+              <h2 style={styles.sectionTitle}>Advertisements</h2>
+              <button type="button" onClick={addAdvertisement} style={styles.itemButton}>
+                <Megaphone size={18} />
+                Add Advertisement
+              </button>
+            </div>
+
+            {advertisements.length ? (
+              <div style={styles.detailList}>
+                {advertisements.map((advertisement, index) => (
+                  <article key={`advertisement-${index}`} style={styles.detailCard}>
+                    <div style={styles.formGrid}>
+                      <label style={styles.label}>
+                        Platform
+                        <input
+                          value={advertisement.platform}
+                          onChange={event => updateAdvertisement(index, 'platform', event.target.value)}
+                          placeholder="Instagram"
+                          style={styles.input}
+                        />
+                      </label>
+                      <label style={styles.label}>
+                        Type
+                        <input
+                          value={advertisement.advertisementType}
+                          onChange={event => updateAdvertisement(index, 'advertisementType', event.target.value)}
+                          placeholder="Story post"
+                          style={styles.input}
+                        />
+                      </label>
+                      <label style={styles.label}>
+                        Status
+                        <select
+                          value={advertisement.status}
+                          onChange={event => updateAdvertisement(index, 'status', event.target.value)}
+                          style={styles.input}
+                        >
+                          <option value="planned">Planned</option>
+                          <option value="scheduled">Scheduled</option>
+                          <option value="posted">Posted</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </label>
+                      <label style={styles.label}>
+                        Scheduled Post Date
+                        <input
+                          type="date"
+                          value={advertisement.scheduledPostDate}
+                          onChange={event => updateAdvertisement(index, 'scheduledPostDate', event.target.value)}
+                          style={styles.input}
+                        />
+                      </label>
+                      <label style={styles.label}>
+                        Actual Post Date
+                        <input
+                          type="date"
+                          value={advertisement.actualPostDate}
+                          onChange={event => updateAdvertisement(index, 'actualPostDate', event.target.value)}
+                          style={styles.input}
+                        />
+                      </label>
+                      <label style={styles.labelWide}>
+                        Content Link
+                        <input
+                          type="url"
+                          value={advertisement.contentLink}
+                          onChange={event => updateAdvertisement(index, 'contentLink', event.target.value)}
+                          style={styles.input}
+                        />
+                      </label>
+                    </div>
+                    <div style={styles.detailActions}>
+                      <button type="button" onClick={() => removeAdvertisement(index)} style={styles.iconButton} aria-label="Remove advertisement">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p style={styles.bodyText}>No advertisements added yet.</p>
+            )}
+          </section>
+
+          <section style={styles.panel}>
+            <div style={styles.panelHeader}>
+              <h2 style={styles.sectionTitle}>Event Documents</h2>
+              <button type="button" onClick={addDocument} style={styles.itemButton}>
+                <FileText size={18} />
+                Add Document
+              </button>
+            </div>
+
+            {documents.length ? (
+              <div style={styles.detailList}>
+                {documents.map((document, index) => (
+                  <article key={`document-${index}`} style={styles.detailCard}>
+                    <div style={styles.formGrid}>
+                      <label style={styles.label}>
+                        Document Name *
+                        <input
+                          value={document.documentName}
+                          onChange={event => updateDocument(index, 'documentName', event.target.value)}
+                          style={styles.input}
+                        />
+                      </label>
+                      <label style={styles.label}>
+                        Document Type
+                        <input
+                          value={document.documentType}
+                          onChange={event => updateDocument(index, 'documentType', event.target.value)}
+                          placeholder="Receipt, flyer, contract"
+                          style={styles.input}
+                        />
+                      </label>
+                      <label style={styles.labelWide}>
+                        File URL *
+                        <input
+                          type="url"
+                          value={document.fileUrl}
+                          onChange={event => updateDocument(index, 'fileUrl', event.target.value)}
+                          style={styles.input}
+                        />
+                      </label>
+                    </div>
+                    <div style={styles.detailActions}>
+                      <button type="button" onClick={() => removeDocument(index)} style={styles.iconButton} aria-label="Remove document">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p style={styles.bodyText}>No documents added yet.</p>
+            )}
+          </section>
+
+          <section style={styles.panel}>
+            <div style={styles.panelHeader}>
               <h2 style={styles.sectionTitle}>Items</h2>
               <button type="button" onClick={openAddItem} style={styles.itemButton}>
                 <PackagePlus size={18} />
@@ -786,6 +1070,14 @@ const styles = {
     fontWeight: 700,
     marginBottom: 0,
   },
+  labelWide: {
+    display: 'grid',
+    gap: 6,
+    color: '#1b365d',
+    fontWeight: 700,
+    marginBottom: 0,
+    gridColumn: '1 / -1',
+  },
   input: {
     width: '100%',
     boxSizing: 'border-box',
@@ -833,6 +1125,25 @@ const styles = {
   itemList: {
     display: 'grid',
     gap: 12,
+  },
+  detailList: {
+    display: 'grid',
+    gap: 12,
+  },
+  detailCard: {
+    display: 'grid',
+    gap: 14,
+    border: '1px solid #edf0f3',
+    borderRadius: 8,
+    background: '#fbfcfd',
+    padding: 16,
+  },
+  detailActions: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    flexWrap: 'wrap',
   },
   itemCard: {
     display: 'flex',

@@ -410,6 +410,10 @@ export default function Events() {
               const id = eventId(event);
               const status = normalizeStatus(event.status);
               const canEdit = canManageEvent(user, event);
+              const contacts = Array.isArray(event.contacts) ? event.contacts : [];
+              const advertisements = Array.isArray(event.advertisements) ? event.advertisements : [];
+              const documents = Array.isArray(event.documents) ? event.documents : [];
+              const primaryContact = contacts.find(contact => Boolean(contact.is_primary));
 
               return (
                 <article key={id || `${event.name}-${event.event_date}`} style={styles.eventCard}>
@@ -437,6 +441,18 @@ export default function Events() {
                         {formatDate(event.event_date)} at {formatTime(event.event_time)}
                       </p>
                       <p style={styles.eventDescription}>{display(event.description)}</p>
+                      {(contacts.length || advertisements.length || documents.length) ? (
+                        <div style={styles.relatedList}>
+                          {primaryContact && (
+                            <span style={styles.relatedPill}>
+                              Contact: {display(`${primaryContact.first_name || ''} ${primaryContact.last_name || ''}`.trim() || primaryContact.computing_id)}
+                            </span>
+                          )}
+                          {contacts.length > 0 && <span style={styles.relatedPill}>{contacts.length} contact{contacts.length === 1 ? '' : 's'}</span>}
+                          {advertisements.length > 0 && <span style={styles.relatedPill}>{advertisements.length} ad{advertisements.length === 1 ? '' : 's'}</span>}
+                          {documents.length > 0 && <span style={styles.relatedPill}>{documents.length} document{documents.length === 1 ? '' : 's'}</span>}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -709,6 +725,23 @@ const styles = {
     margin: '10px 0 0',
     color: '#1b365d',
     lineHeight: 1.45,
+  },
+  relatedList: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginTop: 12,
+  },
+  relatedPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 28,
+    padding: '4px 9px',
+    borderRadius: 6,
+    background: '#eef4ff',
+    color: '#003e83',
+    fontSize: 12,
+    fontWeight: 800,
   },
   eventDetails: {
     display: 'grid',

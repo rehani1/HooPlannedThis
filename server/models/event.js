@@ -107,6 +107,33 @@ function normalizeSupply(supply = {}) {
   };
 }
 
+function normalizeEventContact(contact = {}) {
+  return {
+    computingId: requiredString(contact.computingId ?? contact.computing_id, 'Contact computing ID is required'),
+    contactRole: optionalString(contact.contactRole ?? contact.contact_role),
+    isPrimary: Boolean(contact.isPrimary ?? contact.is_primary),
+  };
+}
+
+function normalizeAdvertisement(advertisement = {}) {
+  return {
+    platform: optionalString(advertisement.platform),
+    advertisementType: optionalString(advertisement.advertisementType ?? advertisement.advertisement_type),
+    contentLink: optionalString(advertisement.contentLink ?? advertisement.content_link),
+    scheduledPostDate: optionalString(advertisement.scheduledPostDate ?? advertisement.scheduled_post_date),
+    actualPostDate: optionalString(advertisement.actualPostDate ?? advertisement.actual_post_date),
+    status: optionalString(advertisement.status) || 'planned',
+  };
+}
+
+function normalizeEventDocument(document = {}) {
+  return {
+    documentName: requiredString(document.documentName ?? document.document_name, 'Document name is required'),
+    documentType: optionalString(document.documentType ?? document.document_type),
+    fileUrl: requiredString(document.fileUrl ?? document.file_url, 'Document URL is required'),
+  };
+}
+
 function normalizeEvent(data = {}) {
   const location = normalizeLocation(data);
 
@@ -121,6 +148,9 @@ function normalizeEvent(data = {}) {
     status: optionalString(data.status) || 'planned',
     location,
     supplies: Array.isArray(data.supplies) ? data.supplies.map(normalizeSupply) : [],
+    contacts: Array.isArray(data.contacts) ? data.contacts.map(normalizeEventContact) : [],
+    advertisements: Array.isArray(data.advertisements) ? data.advertisements.map(normalizeAdvertisement) : [],
+    documents: Array.isArray(data.documents) ? data.documents.map(normalizeEventDocument) : [],
     createdBy: optionalString(data.createdBy),
   };
 }
@@ -304,6 +334,127 @@ async function insertSupplyForEvent(query, eventId, supply) {
   return supplyId;
 }
 
+async function insertContactForEvent(query, eventId, contact) {
+  await query(
+    `INSERT INTO EventContact
+       (event_id, computing_id, contact_role, is_primary)
+     VALUES (?,?,?,?)
+     ON DUPLICATE KEY UPDATE
+       contact_role = VALUES(contact_role),
+       is_primary = VALUES(is_primary)`,
+    [
+      eventId,
+      contact.computingId,
+      contact.contactRole,
+      contact.isPrimary ? 1 : 0,
+    ]
+  );
+}
+
+async function insertAdvertisementForEvent(query, eventId, advertisement, createdBy) {
+  await query(
+    `INSERT INTO Advertisement
+       (event_id, created_by, platform, advertisement_type, content_link,
+        scheduled_post_date, actual_post_date, status)
+     VALUES (?,?,?,?,?,?,?,?)`,
+    [
+      eventId,
+      createdBy,
+      advertisement.platform,
+      advertisement.advertisementType,
+      advertisement.contentLink,
+      advertisement.scheduledPostDate,
+      advertisement.actualPostDate,
+      advertisement.status,
+    ]
+  );
+}
+
+async function insertDocumentForEvent(query, eventId, document, uploadedBy) {
+  await query(
+    `INSERT INTO EventDocument
+       (event_id, uploaded_by, document_name, document_type, file_url)
+     VALUES (?,?,?,?,?)`,
+    [
+      eventId,
+      uploadedBy,
+      document.documentName,
+      document.documentType,
+      document.fileUrl,
+    ]
+  );
+}
+
+async function attachEventDetails(query, events) {
+  if (!events.length) return events;
+
+  const eventIds = events.map(event => event.event_id);
+  const placeholders = eventIds.map(() => '?').join(',');
+
+  const [contacts, advertisements, documents] = await Promise.all([
+    query(
+      `SELECT ec.event_id,
+              ec.computing_id,
+              ec.contact_role,
+              ec.is_primary,
+              cm.first_name,
+              cm.last_name,
+              cm.email
+         FROM EventContact ec
+         LEFT JOIN CouncilMember cm ON ec.computing_id = cm.computing_id
+        WHERE ec.event_id IN (${placeholders})
+        ORDER BY ec.is_primary DESC, cm.last_name, cm.first_name`,
+      eventIds
+    ),
+    query(
+      `SELECT advertisement_id,
+              event_id,
+              created_by,
+              platform,
+              advertisement_type,
+              content_link,
+              scheduled_post_date,
+              actual_post_date,
+              status
+         FROM Advertisement
+        WHERE event_id IN (${placeholders})
+        ORDER BY scheduled_post_date IS NULL, scheduled_post_date, advertisement_id`,
+      eventIds
+    ),
+    query(
+      `SELECT document_id,
+              event_id,
+              uploaded_by,
+              document_name,
+              document_type,
+              file_url,
+              uploaded_at
+         FROM EventDocument
+        WHERE event_id IN (${placeholders})
+        ORDER BY uploaded_at DESC, document_id DESC`,
+      eventIds
+    ),
+  ]);
+
+  const byEvent = rows => rows.reduce((map, row) => {
+    const id = Number(row.event_id);
+    if (!map.has(id)) map.set(id, []);
+    map.get(id).push(row);
+    return map;
+  }, new Map());
+
+  const contactMap = byEvent(contacts);
+  const advertisementMap = byEvent(advertisements);
+  const documentMap = byEvent(documents);
+
+  return events.map(event => ({
+    ...event,
+    contacts: contactMap.get(Number(event.event_id)) || [],
+    advertisements: advertisementMap.get(Number(event.event_id)) || [],
+    documents: documentMap.get(Number(event.event_id)) || [],
+  }));
+}
+
 export async function createEvent(data) {
   const event = normalizeEvent(data);
   const conn  = await pool.getConnection();
@@ -359,6 +510,18 @@ export async function createEvent(data) {
 
     for (const s of event.supplies) {
       await insertSupplyForEvent(query, eventId, s);
+    }
+
+    for (const contact of event.contacts) {
+      await insertContactForEvent(query, eventId, contact);
+    }
+
+    for (const advertisement of event.advertisements) {
+      await insertAdvertisementForEvent(query, eventId, advertisement, event.createdBy);
+    }
+
+    for (const document of event.documents) {
+      await insertDocumentForEvent(query, eventId, document, event.createdBy);
     }
 
     await commit();
@@ -421,7 +584,8 @@ export async function getEventById(eventId) {
       throw err;
     }
 
-    return rows[0];
+    const [event] = await attachEventDetails(query, rows);
+    return event;
   } finally {
     conn.release();
   }
@@ -546,7 +710,7 @@ export async function getEvents(limit = 3, order = 'DESC', committeeId = null) {
         LIMIT ?`,
       params
     );
-    return rows;
+    return attachEventDetails(query, rows);
   } finally {
     conn.release();
   }
