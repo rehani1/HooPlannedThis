@@ -14,6 +14,7 @@ const EMPTY_EVENT = {
   eventTime: '',
   description: '',
   budgetAllocated: '',
+  volunteerSlots: '0',
   committeeId: '',
   status: 'planned',
 };
@@ -430,6 +431,7 @@ export default function CreateEvent() {
       startTime: event.eventTime,
       description: event.description.trim() || null,
       budget: Number(event.budgetAllocated) || 0,
+      volunteerSlots: parseInt(event.volunteerSlots, 10) || 0,
       committeeId: Number(event.committeeId),
       status: event.status,
       locationName: location.locationName.trim(),
@@ -545,6 +547,18 @@ export default function CreateEvent() {
                   min="0"
                   step="0.01"
                   value={event.budgetAllocated}
+                  onChange={updateEvent}
+                  style={styles.input}
+                />
+              </label>
+              <label style={styles.label}>
+                Volunteers Needed
+                <input
+                  name="volunteerSlots"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={event.volunteerSlots}
                   onChange={updateEvent}
                   style={styles.input}
                 />

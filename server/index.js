@@ -1,4 +1,4 @@
-import { createEvent, getEvents } from './models/event.js'
+import { createEvent, getEventById, getEvents, updateEvent } from './models/event.js'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
@@ -16,8 +16,14 @@ import { resetApplicationData } from './models/adminReset.js';
 
 import {
     listItemsByEvent,
-    createItem
+    createItem,
+    confirmItemSpent
   } from './models/supply.js';
+import {
+  cancelVolunteerSignup,
+  listVolunteerEvents,
+  signUpForEvent,
+} from './models/volunteer.js';
 
 import {
   getUserByUsername,
@@ -143,6 +149,20 @@ function canManageCommittee(user, committee) {
   return executiveForCouncil || leadForCommittee;
 }
 
+function canManageEvent(user, event) {
+  const councilYearId = Number(event.councilYearId ?? event.council_year_id);
+  const committeeId = Number(event.committee_id ?? event.committeeId);
+  const executiveForCouncil = (user.executivePositions || []).some(position =>
+    Number(position.councilYearId) === councilYearId
+  );
+  const leadForCommittee = (user.committeeMemberships || []).some(membership =>
+    Number(membership.committeeId) === committeeId &&
+    isCommitteeLeadRole(membership.role)
+  );
+
+  return executiveForCouncil || leadForCommittee;
+}
+
 app.get('/api/health', async (req, res) => {
   try {
     await checkDatabaseConnection();
@@ -201,19 +221,95 @@ app.get('/api/items', async (req, res) => {
   }
 });
 
+app.get('/api/volunteers', requireAuth, async (req, res) => {
+  try {
+    const events = await listVolunteerEvents(req.user.councilYearId, req.user.id);
+    res.json(events);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('GET /api/volunteers error', err);
+    res.status(500).json({ message: 'Failed to load volunteer opportunities' });
+  }
+});
+
+app.post('/api/volunteers/:eventId/signup', requireAuth, async (req, res) => {
+  try {
+    const result = await signUpForEvent({
+      eventId: req.params.eventId,
+      computingId: req.user.id,
+      councilYearId: req.user.councilYearId,
+      volunteerRole: req.body.volunteerRole ?? req.body.volunteer_role,
+      shiftStart: req.body.shiftStart ?? req.body.shift_start,
+      shiftEnd: req.body.shiftEnd ?? req.body.shift_end,
+    });
+    res.status(201).json(result);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('POST /api/volunteers/:eventId/signup error', err);
+    res.status(500).json({ message: 'Failed to save volunteer signup' });
+  }
+});
+
+app.post('/api/volunteers/:eventId/cancel', requireAuth, async (req, res) => {
+  try {
+    const result = await cancelVolunteerSignup({
+      eventId: req.params.eventId,
+      computingId: req.user.id,
+      councilYearId: req.user.councilYearId,
+    });
+    res.json(result);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('POST /api/volunteers/:eventId/cancel error', err);
+    res.status(500).json({ message: 'Failed to cancel volunteer signup' });
+  }
+});
+
 /**
  * POST /api/items
  * Body must include event_id
  */
-app.post('/api/items', async (req, res) => {
+app.post('/api/items', requireAuth, async (req, res) => {
   const data = req.body;
   if (!data.event_id) return res.status(400).json({ message: 'Missing event_id in payload' });
   try {
+    const event = await getEventById(data.event_id);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only manage items for events you lead' });
+    }
+
     const newId = await createItem(data);
     res.status(201).json({ item_id: newId });
   } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
     console.error('Error creating item:', err);
     res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/events/:eventId/items/:supplyId/confirm-spent', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only confirm spending for events you lead' });
+    }
+
+    const result = await confirmItemSpent(req.params.eventId, req.params.supplyId);
+    res.json(result);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    console.error('POST /api/events/:eventId/items/:supplyId/confirm-spent error', err);
+    res.status(500).json({ message: 'Failed to confirm item spending' });
   }
 });
 
@@ -394,6 +490,35 @@ app.post('/api/events', async (req, res) => {
     }
     console.error(err);
     res.sendStatus(500);
+  }
+});
+
+app.put('/api/events/:id', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.id);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only edit events for committees you lead' });
+    }
+
+    const requestedCommitteeId = req.body.committeeId ?? req.body.committee_id;
+    if (requestedCommitteeId !== undefined && Number(requestedCommitteeId) !== Number(event.committee_id)) {
+      const targetCommittee = await getCommitteeById(requestedCommitteeId);
+      if (!canManageCommittee(req.user, targetCommittee)) {
+        return res.status(403).json({ message: 'You can only move events to committees you lead' });
+      }
+    }
+
+    const updated = await updateEvent(req.params.id, req.body);
+    res.json(updated);
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json({ message: err.message });
+    }
+    if (err.code === 'ER_BAD_NULL_ERROR') {
+      return res.status(400).json({ message: 'Missing required event fields' });
+    }
+    console.error('PUT /api/events/:id error', err);
+    res.status(500).json({ message: 'Failed to update event' });
   }
 });
 

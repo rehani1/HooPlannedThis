@@ -43,7 +43,8 @@ function App() {
         <Route path="/classcouncil"       element={<ClassCouncil />} />
         <Route path="/advisors"           element={<Advisors />} />
         <Route path="/budget"             element={<Budget />} />
-        <Route path="/volunteersignup"    element={<VolunteerSignUp />} />
+        <Route path="/volunteers"         element={<VolunteerSignUp />} />
+        <Route path="/volunteersignup"    element={<Navigate to="/volunteers" replace />} />
         <Route path="/admincreatecouncil" element={adminSetupRoute(<AdminCreateCouncil />)} />
 
         {/* fallback */}

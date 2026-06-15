@@ -47,6 +47,42 @@ function positiveInteger(value, message) {
   return parsed;
 }
 
+function normalizeLocation(data = {}, message = 'Location name is required when adding a location') {
+  const locationName = optionalString(data.locationName);
+  const locationAddress = optionalString(data.locationAddress);
+  const city = optionalString(data.city);
+  const state = optionalString(data.state);
+  const zipcode = optionalString(data.zipcode);
+  const venueEmail = optionalString(data.venueEmail);
+  const venuePhone = optionalString(data.venuePhone);
+  const hasLocation =
+    locationName ||
+    locationAddress ||
+    city ||
+    state ||
+    zipcode ||
+    venueEmail ||
+    venuePhone;
+
+  if (hasLocation && !locationName) {
+    const err = new Error(message);
+    err.status = 400;
+    throw err;
+  }
+
+  return hasLocation
+    ? {
+        name: locationName,
+        address: locationAddress,
+        city,
+        state,
+        zipcode,
+        venueEmail,
+        venuePhone,
+      }
+    : null;
+}
+
 function normalizeSupply(supply = {}) {
   const vendor = supply.vendor || {};
   const vendorCompany = optionalString(vendor.company);
@@ -72,21 +108,7 @@ function normalizeSupply(supply = {}) {
 }
 
 function normalizeEvent(data = {}) {
-  const locationName = optionalString(data.locationName);
-  const hasLocation =
-    locationName ||
-    optionalString(data.locationAddress) ||
-    optionalString(data.city) ||
-    optionalString(data.state) ||
-    optionalString(data.zipcode) ||
-    optionalString(data.venueEmail) ||
-    optionalString(data.venuePhone);
-
-  if (hasLocation && !locationName) {
-    const err = new Error('Location name is required when adding a location');
-    err.status = 400;
-    throw err;
-  }
+  const location = normalizeLocation(data);
 
   return {
     title: requiredString(data.title ?? data.name, 'Event name is required'),
@@ -94,22 +116,114 @@ function normalizeEvent(data = {}) {
     startTime: requiredString(data.startTime ?? data.eventTime, 'Event time is required'),
     description: optionalString(data.description),
     budget: nonNegativeNumber(data.budget ?? data.budgetAllocated, 'Event budget must be a non-negative number'),
+    volunteerSlots: nonNegativeInteger(data.volunteerSlots ?? data.volunteer_slots, 'Volunteer slots must be a non-negative whole number'),
     committeeId: positiveInteger(data.committeeId, 'Committee is required'),
     status: optionalString(data.status) || 'planned',
-    location: hasLocation
-      ? {
-          name: locationName,
-          address: optionalString(data.locationAddress),
-          city: optionalString(data.city),
-          state: optionalString(data.state),
-          zipcode: optionalString(data.zipcode),
-          venueEmail: optionalString(data.venueEmail),
-          venuePhone: optionalString(data.venuePhone),
-        }
-      : null,
+    location,
     supplies: Array.isArray(data.supplies) ? data.supplies.map(normalizeSupply) : [],
     createdBy: optionalString(data.createdBy),
   };
+}
+
+function normalizeEventUpdate(data = {}) {
+  const committeeValue = data.committeeId ?? data.committee_id;
+  const locationProvided = [
+    'locationName',
+    'locationAddress',
+    'city',
+    'state',
+    'zipcode',
+    'venueEmail',
+    'venuePhone',
+  ].some(key => Object.prototype.hasOwnProperty.call(data, key));
+
+  return {
+    title: requiredString(data.title ?? data.name, 'Event name is required'),
+    date: requiredString(data.date ?? data.eventDate, 'Event date is required'),
+    startTime: requiredString(data.startTime ?? data.eventTime, 'Event time is required'),
+    description: optionalString(data.description),
+    budget: nonNegativeNumber(data.budget ?? data.budgetAllocated, 'Event budget must be a non-negative number'),
+    volunteerSlots: nonNegativeInteger(data.volunteerSlots ?? data.volunteer_slots, 'Volunteer slots must be a non-negative whole number'),
+    status: optionalString(data.status) || 'planned',
+    committeeId: committeeValue === undefined || committeeValue === null || committeeValue === ''
+      ? null
+      : positiveInteger(committeeValue, 'Committee is required'),
+    locationProvided,
+    location: locationProvided
+      ? normalizeLocation(data, 'Location name is required when updating a location')
+      : null,
+  };
+}
+
+async function saveLocationForEvent(query, existingLocationId, location) {
+  if (!location) return null;
+
+  if (!existingLocationId) {
+    const result = await query(
+      `INSERT INTO Location
+         (name, address, city, state, zipcode, venue_email, venue_phone)
+       VALUES (?,?,?,?,?,?,?)`,
+      [
+        location.name,
+        location.address,
+        location.city,
+        location.state,
+        location.zipcode,
+        location.venueEmail,
+        location.venuePhone,
+      ]
+    );
+    return result.insertId;
+  }
+
+  const usageRows = await query(
+    `SELECT COUNT(*) AS usageCount
+       FROM CouncilEvent
+      WHERE location_id = ?`,
+    [existingLocationId]
+  );
+  const isShared = Number(usageRows[0]?.usageCount || 0) > 1;
+
+  if (isShared) {
+    const result = await query(
+      `INSERT INTO Location
+         (name, address, city, state, zipcode, venue_email, venue_phone)
+       VALUES (?,?,?,?,?,?,?)`,
+      [
+        location.name,
+        location.address,
+        location.city,
+        location.state,
+        location.zipcode,
+        location.venueEmail,
+        location.venuePhone,
+      ]
+    );
+    return result.insertId;
+  }
+
+  await query(
+    `UPDATE Location
+        SET name = ?,
+            address = ?,
+            city = ?,
+            state = ?,
+            zipcode = ?,
+            venue_email = ?,
+            venue_phone = ?
+      WHERE location_id = ?`,
+    [
+      location.name,
+      location.address,
+      location.city,
+      location.state,
+      location.zipcode,
+      location.venueEmail,
+      location.venuePhone,
+      existingLocationId,
+    ]
+  );
+  return existingLocationId;
 }
 
 async function insertSupplyForEvent(query, eventId, supply) {
@@ -226,8 +340,8 @@ export async function createEvent(data) {
       `INSERT INTO CouncilEvent
          (name, event_date, event_time,
           description, budget_allocated,
-          committee_id, location_id, created_by, status)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
+          committee_id, location_id, created_by, status, volunteer_slots)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
       [
         event.title,
         event.date,
@@ -237,7 +351,8 @@ export async function createEvent(data) {
         event.committeeId,
         locationId,
         event.createdBy,
-        event.status
+        event.status,
+        event.volunteerSlots
       ]
     );
     const eventId = evtRes.insertId;
@@ -258,6 +373,129 @@ export async function createEvent(data) {
   }
 }
 
+export async function getEventById(eventId) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  const conn  = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
+
+  try {
+    const rows = await query(
+      `SELECT e.event_id AS id,
+              e.event_id,
+              e.committee_id,
+              c.council_year_id AS councilYearId,
+              c.committee_name AS committeeName,
+              e.location_id,
+              l.name AS locationName,
+              l.address AS locationAddress,
+              l.city AS locationCity,
+              l.state AS locationState,
+              l.zipcode AS locationZipcode,
+              l.venue_email AS venueEmail,
+              l.venue_phone AS venuePhone,
+              e.created_by,
+              e.name,
+              e.description,
+              e.event_date,
+              e.event_time,
+              e.budget_allocated,
+              e.status,
+              e.volunteer_slots AS volunteerSlots,
+              (
+                SELECT COUNT(*)
+                  FROM VolunteerSignup vs
+                 WHERE vs.event_id = e.event_id
+                   AND vs.signup_status = 'signed_up'
+              ) AS signupCount
+         FROM CouncilEvent e
+         JOIN Committee c ON e.committee_id = c.committee_id
+         LEFT JOIN Location l ON e.location_id = l.location_id
+        WHERE e.event_id = ?
+        LIMIT 1`,
+      [id]
+    );
+
+    if (!rows.length) {
+      const err = new Error('Event not found');
+      err.status = 404;
+      throw err;
+    }
+
+    return rows[0];
+  } finally {
+    conn.release();
+  }
+}
+
+export async function updateEvent(eventId, data) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  const event = normalizeEventUpdate(data);
+  const conn  = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
+  const beginTransaction = promisify(conn.beginTransaction).bind(conn);
+  const commit = promisify(conn.commit).bind(conn);
+  const rollback = promisify(conn.rollback).bind(conn);
+
+  try {
+    await beginTransaction();
+
+    const existingRows = await query(
+      `SELECT event_id, committee_id, location_id
+         FROM CouncilEvent
+        WHERE event_id = ?
+        LIMIT 1`,
+      [id]
+    );
+
+    if (!existingRows.length) {
+      const err = new Error('Event not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const existing = existingRows[0];
+    const committeeId = event.committeeId || existing.committee_id;
+    const locationId = event.locationProvided
+      ? await saveLocationForEvent(query, existing.location_id, event.location)
+      : existing.location_id;
+
+    await query(
+      `UPDATE CouncilEvent
+          SET name = ?,
+              event_date = ?,
+              event_time = ?,
+              description = ?,
+              budget_allocated = ?,
+              status = ?,
+              volunteer_slots = ?,
+              committee_id = ?,
+              location_id = ?
+        WHERE event_id = ?`,
+      [
+        event.title,
+        event.date,
+        event.startTime,
+        event.description,
+        event.budget,
+        event.status,
+        event.volunteerSlots,
+        committeeId,
+        locationId,
+        id,
+      ]
+    );
+
+    await commit();
+  } catch (err) {
+    await rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  return getEventById(id);
+}
+
 export async function getEvents(limit = 3, order = 'DESC', committeeId = null) {
   const conn  = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
@@ -265,7 +503,7 @@ export async function getEvents(limit = 3, order = 'DESC', committeeId = null) {
   const params = [];
 
   if (committeeId !== null) {
-    filters.push('committee_id = ?');
+    filters.push('e.committee_id = ?');
     params.push(committeeId);
   }
 
@@ -274,19 +512,37 @@ export async function getEvents(limit = 3, order = 'DESC', committeeId = null) {
   try {
     const rows = await query(
       `SELECT event_id AS id,
-              event_id,
-              committee_id,
-              location_id,
-              created_by,
-              name,
-              description,
-              event_date,
-              event_time,
-              budget_allocated,
-              status
-         FROM CouncilEvent
+              e.event_id,
+              e.committee_id,
+              c.council_year_id,
+              c.committee_name,
+              e.location_id,
+              l.name AS location_name,
+              l.address AS location_address,
+              l.city AS location_city,
+              l.state AS location_state,
+              l.zipcode AS location_zipcode,
+              l.venue_email,
+              l.venue_phone,
+              e.created_by,
+              e.name,
+              e.description,
+              e.event_date,
+              e.event_time,
+              e.budget_allocated,
+              e.status,
+              e.volunteer_slots,
+              (
+                SELECT COUNT(*)
+                  FROM VolunteerSignup vs
+                 WHERE vs.event_id = e.event_id
+                   AND vs.signup_status = 'signed_up'
+              ) AS volunteer_signup_count
+         FROM CouncilEvent e
+         JOIN Committee c ON e.committee_id = c.committee_id
+         LEFT JOIN Location l ON e.location_id = l.location_id
         ${filters.length ? `WHERE ${filters.join(' AND ')}` : ''}
-        ORDER BY event_date ${order}
+        ORDER BY e.event_date ${order}, e.event_time ${order}
         LIMIT ?`,
       params
     );

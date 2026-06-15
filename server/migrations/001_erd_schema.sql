@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS CouncilEvent (
   event_time TIME NOT NULL,
   budget_allocated DECIMAL(12,2) NOT NULL DEFAULT 0,
   status VARCHAR(40) NOT NULL DEFAULT 'planned',
+  volunteer_slots INT NOT NULL DEFAULT 0,
   CONSTRAINT fk_council_event_committee
     FOREIGN KEY (committee_id) REFERENCES Committee(committee_id)
     ON DELETE RESTRICT,

@@ -41,11 +41,17 @@ export async function listItemsByEvent(eventId) {
          v.company_name,
          s.name,
          es.quantity_needed AS quantity,
+         es.quantity_used AS quantityUsed,
+         es.quantity_returned AS quantityReturned,
          es.unit_cost_at_time AS unitCost,
          es.notes,
          vs.product_link AS link,
+         vs.vendor_id,
          s.reusable,
          es.return_needed,
+         expense.expense_id AS expenseId,
+         expense.amount AS spentAmount,
+         expense.expense_date AS spentDate,
          v.contact_name,
          v.contact_address,
          v.contact_email,
@@ -56,6 +62,18 @@ export async function listItemsByEvent(eventId) {
               ON vs.supply_id = s.supply_id
              AND vs.preferred_vendor = 1
        LEFT JOIN Vendor v ON vs.vendor_id = v.vendor_id
+       LEFT JOIN (
+         SELECT MIN(expense_id) AS expense_id,
+                event_id,
+                MAX(amount) AS amount,
+                MAX(expense_date) AS expense_date,
+                description
+           FROM EventExpense
+          WHERE category = 'supplies'
+          GROUP BY event_id, description
+       ) expense
+              ON expense.event_id = es.event_id
+             AND expense.description = CONCAT('Supply #', s.supply_id, ': ', s.name)
        WHERE es.event_id = ?
        ORDER BY s.name`,
       [eventId]
@@ -65,7 +83,14 @@ export async function listItemsByEvent(eventId) {
       event_id:      r.event_id,
       name:          r.name,
       quantity:      r.quantity,
+      quantityUsed:  r.quantityUsed,
+      quantityReturned: r.quantityReturned,
       unitCost:      parseFloat(r.unitCost),
+      totalCost:     (Number(r.quantity) || 0) * (Number(r.unitCost) || 0),
+      spent:         Number(r.quantityUsed || 0) > 0 || Boolean(r.expenseId),
+      expenseId:     r.expenseId,
+      spentAmount:   r.spentAmount == null ? null : parseFloat(r.spentAmount),
+      spentDate:     r.spentDate,
       notes:         r.notes,
       link:          r.link,
       reusable:      Boolean(r.reusable),
@@ -78,6 +103,112 @@ export async function listItemsByEvent(eventId) {
         contact_phone:  r.contact_phone
       }
     }));
+  } finally {
+    conn.release();
+  }
+}
+
+export async function confirmItemSpent(eventId, supplyId) {
+  const parsedEventId = Number(eventId);
+  const parsedSupplyId = Number(supplyId);
+  if (!Number.isInteger(parsedEventId) || parsedEventId <= 0) {
+    const err = new Error('Invalid event id');
+    err.status = 400;
+    throw err;
+  }
+  if (!Number.isInteger(parsedSupplyId) || parsedSupplyId <= 0) {
+    const err = new Error('Invalid item id');
+    err.status = 400;
+    throw err;
+  }
+
+  const conn  = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
+  const beginTransaction = promisify(conn.beginTransaction).bind(conn);
+  const commit = promisify(conn.commit).bind(conn);
+  const rollback = promisify(conn.rollback).bind(conn);
+
+  try {
+    await beginTransaction();
+
+    const rows = await query(
+      `SELECT es.event_id,
+              es.supply_id,
+              es.quantity_needed,
+              es.quantity_used,
+              es.unit_cost_at_time,
+              s.name,
+              vs.vendor_id
+         FROM EventSupply es
+         JOIN Supply s ON es.supply_id = s.supply_id
+         LEFT JOIN VendorSupply vs
+                ON vs.supply_id = s.supply_id
+               AND vs.preferred_vendor = 1
+        WHERE es.event_id = ?
+          AND es.supply_id = ?
+        LIMIT 1`,
+      [parsedEventId, parsedSupplyId]
+    );
+
+    if (!rows.length) {
+      const err = new Error('Item not found for this event');
+      err.status = 404;
+      throw err;
+    }
+
+    const item = rows[0];
+    const quantity = Number(item.quantity_needed) || 0;
+    const unitCost = Number(item.unit_cost_at_time) || 0;
+    const amount = quantity * unitCost;
+    const description = `Supply #${parsedSupplyId}: ${item.name}`;
+
+    await query(
+      `UPDATE EventSupply
+          SET quantity_used = quantity_needed
+        WHERE event_id = ?
+          AND supply_id = ?`,
+      [parsedEventId, parsedSupplyId]
+    );
+
+    const existingExpenses = await query(
+      `SELECT expense_id
+         FROM EventExpense
+        WHERE event_id = ?
+          AND category = 'supplies'
+          AND description = ?
+        LIMIT 1`,
+      [parsedEventId, description]
+    );
+
+    let expenseId = existingExpenses[0]?.expense_id || null;
+    if (!expenseId) {
+      const result = await query(
+        `INSERT INTO EventExpense
+           (event_id, vendor_id, amount, expense_date, category, description, receipt_url)
+         VALUES (?,?,?,CURRENT_DATE,?,?,NULL)`,
+        [
+          parsedEventId,
+          item.vendor_id || null,
+          amount,
+          'supplies',
+          description,
+        ]
+      );
+      expenseId = result.insertId;
+    }
+
+    await commit();
+    return {
+      eventId: parsedEventId,
+      supplyId: parsedSupplyId,
+      expenseId,
+      amount,
+      quantityUsed: quantity,
+      spent: true,
+    };
+  } catch (err) {
+    await rollback();
+    throw err;
   } finally {
     conn.release();
   }
