@@ -371,7 +371,7 @@ async function insertAdvertisementForEvent(query, eventId, advertisement, create
 }
 
 async function insertDocumentForEvent(query, eventId, document, uploadedBy) {
-  await query(
+  const result = await query(
     `INSERT INTO EventDocument
        (event_id, uploaded_by, document_name, document_type, file_url)
      VALUES (?,?,?,?,?)`,
@@ -383,6 +383,7 @@ async function insertDocumentForEvent(query, eventId, document, uploadedBy) {
       document.fileUrl,
     ]
   );
+  return result.insertId;
 }
 
 async function attachEventDetails(query, events) {
@@ -427,7 +428,6 @@ async function attachEventDetails(query, events) {
               uploaded_by,
               document_name,
               document_type,
-              file_url,
               uploaded_at
          FROM EventDocument
         WHERE event_id IN (${placeholders})
@@ -534,6 +534,59 @@ export async function createEvent(data) {
   } finally {
     conn.release();
   }
+}
+
+export async function createEventDocument(eventId, data, uploadedBy) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  const document = normalizeEventDocument(data);
+  const conn = await pool.getConnection();
+  const query = promisify(conn.query).bind(conn);
+
+  try {
+    const documentId = await insertDocumentForEvent(query, id, document, uploadedBy);
+    return getEventDocumentById(documentId);
+  } finally {
+    conn.release();
+  }
+}
+
+export async function getEventDocumentById(documentId) {
+  const id = positiveInteger(documentId, 'Invalid document id');
+  const rows = await pool.query(
+    `SELECT ed.document_id,
+            ed.event_id,
+            ed.uploaded_by,
+            ed.document_name,
+            ed.document_type,
+            ed.file_url,
+            ed.uploaded_at,
+            e.committee_id,
+            c.council_year_id
+       FROM EventDocument ed
+       JOIN CouncilEvent e ON ed.event_id = e.event_id
+       JOIN Committee c ON e.committee_id = c.committee_id
+      WHERE ed.document_id = ?
+      LIMIT 1`,
+    [id]
+  );
+
+  if (!rows.length) {
+    const err = new Error('Document not found');
+    err.status = 404;
+    throw err;
+  }
+
+  return rows[0];
+}
+
+export async function deleteEventDocument(documentId) {
+  const document = await getEventDocumentById(documentId);
+  await pool.query(
+    `DELETE FROM EventDocument
+      WHERE document_id = ?`,
+    [document.document_id]
+  );
+  return document;
 }
 
 export async function getEventById(eventId) {

@@ -1,4 +1,12 @@
-import { createEvent, getEventById, getEvents, updateEvent } from './models/event.js'
+import {
+  createEvent,
+  createEventDocument,
+  deleteEventDocument,
+  getEventById,
+  getEventDocumentById,
+  getEvents,
+  updateEvent,
+} from './models/event.js'
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
@@ -37,6 +45,13 @@ import {
   describeDatabaseError,
   getDatabaseConfigSummary,
 } from './db.js'
+import {
+  buildDocumentKey,
+  createDownloadUrl,
+  createUploadUrl,
+  deleteDocumentObject,
+  validateUpload,
+} from './s3Documents.js'
 
 dotenv.config()
 
@@ -161,6 +176,13 @@ function canManageEvent(user, event) {
   );
 
   return executiveForCouncil || leadForCommittee;
+}
+
+function canManageDocument(user, document) {
+  return canManageEvent(user, {
+    councilYearId: document.council_year_id,
+    committee_id: document.committee_id,
+  });
 }
 
 app.get('/api/health', async (req, res) => {
@@ -519,6 +541,138 @@ app.put('/api/events/:id', requireAuth, async (req, res) => {
     }
     console.error('PUT /api/events/:id error', err);
     res.status(500).json({ message: 'Failed to update event' });
+  }
+});
+
+app.post('/api/events/:eventId/documents/upload-url', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only upload documents for events you lead' });
+    }
+
+    const { filename, contentType, size } = req.body;
+    validateUpload({ contentType, size });
+
+    const key = buildDocumentKey({
+      councilYearId: event.councilYearId ?? event.council_year_id,
+      committeeId: event.committee_id,
+      eventId: event.event_id,
+      filename,
+    });
+    const uploadUrl = await createUploadUrl({ key, contentType });
+
+    console.info('document upload-url-created', {
+      user: req.user.id,
+      eventId: event.event_id,
+      result: 'allowed',
+    });
+
+    res.json({ uploadUrl, key, expiresIn: 300 });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('POST /api/events/:eventId/documents/upload-url error', err);
+    res.status(500).json({ message: 'Failed to create upload URL' });
+  }
+});
+
+app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only add documents for events you lead' });
+    }
+
+    const key = String(req.body.key || '');
+    const expectedPrefix = [
+      `council-years/${Number(event.councilYearId ?? event.council_year_id)}`,
+      `committees/${Number(event.committee_id)}`,
+      `events/${Number(event.event_id)}`,
+      'documents/',
+    ].join('/');
+    if (!key.startsWith(expectedPrefix)) {
+      return res.status(400).json({ message: 'Invalid document key for this event' });
+    }
+
+    const document = await createEventDocument(req.params.eventId, {
+      documentName: req.body.documentName,
+      documentType: req.body.documentType,
+      fileUrl: key,
+    }, req.user.id);
+
+    console.info('document metadata-created', {
+      user: req.user.id,
+      eventId: event.event_id,
+      documentId: document.document_id,
+      result: 'allowed',
+    });
+
+    res.status(201).json({
+      document_id: document.document_id,
+      event_id: document.event_id,
+      uploaded_by: document.uploaded_by,
+      document_name: document.document_name,
+      document_type: document.document_type,
+      uploaded_at: document.uploaded_at,
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('POST /api/events/:eventId/documents error', err);
+    res.status(500).json({ message: 'Failed to save document metadata' });
+  }
+});
+
+app.get('/api/events/:eventId/documents/:documentId/download-url', requireAuth, async (req, res) => {
+  try {
+    const document = await getEventDocumentById(req.params.documentId);
+    if (Number(document.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Document not found for this event' });
+    }
+    if (!canManageDocument(req.user, document)) {
+      return res.status(403).json({ message: 'You can only view documents for events you lead' });
+    }
+
+    const downloadUrl = await createDownloadUrl(document.file_url);
+    console.info('document read-url-created', {
+      user: req.user.id,
+      eventId: document.event_id,
+      documentId: document.document_id,
+      result: 'allowed',
+    });
+
+    res.json({ downloadUrl, expiresIn: 300 });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('GET /api/events/:eventId/documents/:documentId/download-url error', err);
+    res.status(500).json({ message: 'Failed to create download URL' });
+  }
+});
+
+app.delete('/api/events/:eventId/documents/:documentId', requireAuth, async (req, res) => {
+  try {
+    const document = await getEventDocumentById(req.params.documentId);
+    if (Number(document.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Document not found for this event' });
+    }
+    if (!canManageDocument(req.user, document)) {
+      return res.status(403).json({ message: 'You can only delete documents for events you lead' });
+    }
+
+    const deleted = await deleteEventDocument(req.params.documentId);
+    await deleteDocumentObject(deleted.file_url);
+
+    console.info('document deleted', {
+      user: req.user.id,
+      eventId: deleted.event_id,
+      documentId: deleted.document_id,
+      result: 'allowed',
+    });
+
+    res.sendStatus(204);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('DELETE /api/events/:eventId/documents/:documentId error', err);
+    res.status(500).json({ message: 'Failed to delete document' });
   }
 });
 
