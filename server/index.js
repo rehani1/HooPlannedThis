@@ -1,10 +1,18 @@
 import {
   createEvent,
+  createEventAdvertisement,
+  createEventContact,
   createEventDocument,
+  deleteEventAdvertisement,
+  deleteEventContact,
   deleteEventDocument,
+  getEventAdvertisementById,
   getEventById,
   getEventDocumentById,
   getEvents,
+  updateEventAdvertisement,
+  updateEventContact,
+  updateEventDocument,
   updateEvent,
 } from './models/event.js'
 import express from 'express'
@@ -25,7 +33,9 @@ import { resetApplicationData } from './models/adminReset.js';
 import {
     listItemsByEvent,
     createItem,
-    confirmItemSpent
+    confirmItemSpent,
+    getEventExpenseById,
+    updateEventExpenseReceipt
   } from './models/supply.js';
 import {
   cancelVolunteerSignup,
@@ -49,6 +59,7 @@ import {
 import {
   buildDocumentKey,
   buildProfilePhotoKey,
+  buildReceiptKey,
   createDownloadUrl,
   createUploadUrl,
   deleteDocumentObject,
@@ -191,6 +202,13 @@ function canManageDocument(user, document) {
   return canManageEvent(user, {
     councilYearId: document.council_year_id,
     committee_id: document.committee_id,
+  });
+}
+
+function canManageExpense(user, expense) {
+  return canManageEvent(user, {
+    councilYearId: expense.council_year_id,
+    committee_id: expense.committee_id,
   });
 }
 
@@ -673,6 +691,102 @@ app.post('/api/events/:eventId/documents/upload-url', requireAuth, async (req, r
   }
 });
 
+app.post('/api/events/:eventId/contacts', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only manage contacts for events you lead' });
+    }
+    const contact = await createEventContact(req.params.eventId, req.body);
+    res.status(201).json(contact);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('POST /api/events/:eventId/contacts error', err);
+    res.status(500).json({ message: 'Failed to save event contact' });
+  }
+});
+
+app.put('/api/events/:eventId/contacts/:computingId', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only manage contacts for events you lead' });
+    }
+    const contact = await updateEventContact(req.params.eventId, req.params.computingId, req.body);
+    res.json(contact);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('PUT /api/events/:eventId/contacts/:computingId error', err);
+    res.status(500).json({ message: 'Failed to update event contact' });
+  }
+});
+
+app.delete('/api/events/:eventId/contacts/:computingId', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only manage contacts for events you lead' });
+    }
+    await deleteEventContact(req.params.eventId, req.params.computingId);
+    res.sendStatus(204);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('DELETE /api/events/:eventId/contacts/:computingId error', err);
+    res.status(500).json({ message: 'Failed to delete event contact' });
+  }
+});
+
+app.post('/api/events/:eventId/advertisements', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only manage advertisements for events you lead' });
+    }
+    const advertisement = await createEventAdvertisement(req.params.eventId, req.body, req.user.id);
+    res.status(201).json(advertisement);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('POST /api/events/:eventId/advertisements error', err);
+    res.status(500).json({ message: 'Failed to save advertisement' });
+  }
+});
+
+app.put('/api/events/:eventId/advertisements/:advertisementId', requireAuth, async (req, res) => {
+  try {
+    const advertisement = await getEventAdvertisementById(req.params.advertisementId);
+    if (Number(advertisement.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Advertisement not found for this event' });
+    }
+    if (!canManageDocument(req.user, advertisement)) {
+      return res.status(403).json({ message: 'You can only manage advertisements for events you lead' });
+    }
+    const updated = await updateEventAdvertisement(req.params.advertisementId, req.body);
+    res.json(updated);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('PUT /api/events/:eventId/advertisements/:advertisementId error', err);
+    res.status(500).json({ message: 'Failed to update advertisement' });
+  }
+});
+
+app.delete('/api/events/:eventId/advertisements/:advertisementId', requireAuth, async (req, res) => {
+  try {
+    const advertisement = await getEventAdvertisementById(req.params.advertisementId);
+    if (Number(advertisement.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Advertisement not found for this event' });
+    }
+    if (!canManageDocument(req.user, advertisement)) {
+      return res.status(403).json({ message: 'You can only manage advertisements for events you lead' });
+    }
+    await deleteEventAdvertisement(req.params.advertisementId);
+    res.sendStatus(204);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('DELETE /api/events/:eventId/advertisements/:advertisementId error', err);
+    res.status(500).json({ message: 'Failed to delete advertisement' });
+  }
+});
+
 app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
   try {
     const event = await getEventById(req.params.eventId);
@@ -719,6 +833,31 @@ app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
   }
 });
 
+app.put('/api/events/:eventId/documents/:documentId', requireAuth, async (req, res) => {
+  try {
+    const document = await getEventDocumentById(req.params.documentId);
+    if (Number(document.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Document not found for this event' });
+    }
+    if (!canManageDocument(req.user, document)) {
+      return res.status(403).json({ message: 'You can only update documents for events you lead' });
+    }
+    const updated = await updateEventDocument(req.params.documentId, req.body);
+    res.json({
+      document_id: updated.document_id,
+      event_id: updated.event_id,
+      uploaded_by: updated.uploaded_by,
+      document_name: updated.document_name,
+      document_type: updated.document_type,
+      uploaded_at: updated.uploaded_at,
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('PUT /api/events/:eventId/documents/:documentId error', err);
+    res.status(500).json({ message: 'Failed to update document' });
+  }
+});
+
 app.get('/api/events/:eventId/documents/:documentId/download-url', requireAuth, async (req, res) => {
   try {
     const document = await getEventDocumentById(req.params.documentId);
@@ -742,6 +881,95 @@ app.get('/api/events/:eventId/documents/:documentId/download-url', requireAuth, 
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('GET /api/events/:eventId/documents/:documentId/download-url error', err);
     res.status(500).json({ message: 'Failed to create download URL' });
+  }
+});
+
+app.post('/api/events/:eventId/expenses/:expenseId/receipt/upload-url', requireAuth, async (req, res) => {
+  try {
+    const expense = await getEventExpenseById(req.params.expenseId);
+    if (Number(expense.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Expense not found for this event' });
+    }
+    if (!canManageExpense(req.user, expense)) {
+      return res.status(403).json({ message: 'You can only manage receipts for events you lead' });
+    }
+    const { filename, contentType, size } = req.body;
+    validateUpload({ contentType, size });
+    const key = buildReceiptKey({
+      councilYearId: expense.council_year_id,
+      committeeId: expense.committee_id,
+      eventId: expense.event_id,
+      expenseId: expense.expense_id,
+      filename,
+    });
+    const uploadUrl = await createUploadUrl({ key, contentType });
+    res.json({ uploadUrl, key, expiresIn: 300 });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('POST /api/events/:eventId/expenses/:expenseId/receipt/upload-url error', err);
+    res.status(500).json({ message: 'Failed to create receipt upload URL' });
+  }
+});
+
+app.put('/api/events/:eventId/expenses/:expenseId/receipt', requireAuth, async (req, res) => {
+  try {
+    const expense = await getEventExpenseById(req.params.expenseId);
+    if (Number(expense.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Expense not found for this event' });
+    }
+    if (!canManageExpense(req.user, expense)) {
+      return res.status(403).json({ message: 'You can only manage receipts for events you lead' });
+    }
+    const key = String(req.body.key || '');
+    const expectedPrefix = `council-years/${Number(expense.council_year_id)}/committees/${Number(expense.committee_id)}/events/${Number(expense.event_id)}/receipts/${Number(expense.expense_id)}/`;
+    if (!key.startsWith(expectedPrefix)) {
+      return res.status(400).json({ message: 'Invalid receipt key for this expense' });
+    }
+    const updated = await updateEventExpenseReceipt(req.params.expenseId, key);
+    res.json(updated);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('PUT /api/events/:eventId/expenses/:expenseId/receipt error', err);
+    res.status(500).json({ message: 'Failed to save receipt' });
+  }
+});
+
+app.get('/api/events/:eventId/expenses/:expenseId/receipt/download-url', requireAuth, async (req, res) => {
+  try {
+    const expense = await getEventExpenseById(req.params.expenseId);
+    if (Number(expense.event_id) !== Number(req.params.eventId) || !expense.receipt_url) {
+      return res.status(404).json({ message: 'Receipt not found for this event' });
+    }
+    if (!canManageExpense(req.user, expense)) {
+      return res.status(403).json({ message: 'You can only view receipts for events you lead' });
+    }
+    const downloadUrl = await createDownloadUrl(expense.receipt_url);
+    res.json({ downloadUrl, expiresIn: 300 });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('GET /api/events/:eventId/expenses/:expenseId/receipt/download-url error', err);
+    res.status(500).json({ message: 'Failed to create receipt download URL' });
+  }
+});
+
+app.delete('/api/events/:eventId/expenses/:expenseId/receipt', requireAuth, async (req, res) => {
+  try {
+    const expense = await getEventExpenseById(req.params.expenseId);
+    if (Number(expense.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Expense not found for this event' });
+    }
+    if (!canManageExpense(req.user, expense)) {
+      return res.status(403).json({ message: 'You can only delete receipts for events you lead' });
+    }
+    if (expense.receipt_url) {
+      await updateEventExpenseReceipt(req.params.expenseId, null);
+      await deleteDocumentObject(expense.receipt_url);
+    }
+    res.sendStatus(204);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('DELETE /api/events/:eventId/expenses/:expenseId/receipt error', err);
+    res.status(500).json({ message: 'Failed to delete receipt' });
   }
 });
 

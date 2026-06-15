@@ -52,6 +52,7 @@ export async function listItemsByEvent(eventId) {
          expense.expense_id AS expenseId,
          expense.amount AS spentAmount,
          expense.expense_date AS spentDate,
+         expense.receipt_url AS receiptUrl,
          v.contact_name,
          v.contact_address,
          v.contact_email,
@@ -67,6 +68,7 @@ export async function listItemsByEvent(eventId) {
                 event_id,
                 MAX(amount) AS amount,
                 MAX(expense_date) AS expense_date,
+                MAX(receipt_url) AS receipt_url,
                 description
            FROM EventExpense
           WHERE category = 'supplies'
@@ -91,6 +93,7 @@ export async function listItemsByEvent(eventId) {
       expenseId:     r.expenseId,
       spentAmount:   r.spentAmount == null ? null : parseFloat(r.spentAmount),
       spentDate:     r.spentDate,
+      receiptUrl:     r.receiptUrl,
       notes:         r.notes,
       link:          r.link,
       reusable:      Boolean(r.reusable),
@@ -212,6 +215,53 @@ export async function confirmItemSpent(eventId, supplyId) {
   } finally {
     conn.release();
   }
+}
+
+export async function getEventExpenseById(expenseId) {
+  const parsedExpenseId = Number(expenseId);
+  if (!Number.isInteger(parsedExpenseId) || parsedExpenseId <= 0) {
+    const err = new Error('Invalid expense id');
+    err.status = 400;
+    throw err;
+  }
+
+  const rows = await pool.query(
+    `SELECT ee.expense_id,
+            ee.event_id,
+            ee.vendor_id,
+            ee.amount,
+            ee.expense_date,
+            ee.category,
+            ee.description,
+            ee.receipt_url,
+            e.committee_id,
+            c.council_year_id
+       FROM EventExpense ee
+       JOIN CouncilEvent e ON ee.event_id = e.event_id
+       JOIN Committee c ON e.committee_id = c.committee_id
+      WHERE ee.expense_id = ?
+      LIMIT 1`,
+    [parsedExpenseId]
+  );
+
+  if (!rows.length) {
+    const err = new Error('Expense not found');
+    err.status = 404;
+    throw err;
+  }
+
+  return rows[0];
+}
+
+export async function updateEventExpenseReceipt(expenseId, receiptUrl) {
+  const expense = await getEventExpenseById(expenseId);
+  await pool.query(
+    `UPDATE EventExpense
+        SET receipt_url = ?
+      WHERE expense_id = ?`,
+    [receiptUrl, expense.expense_id]
+  );
+  return getEventExpenseById(expense.expense_id);
 }
 
 /**

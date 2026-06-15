@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, PackagePlus } from 'lucide-react';
 import Layout from '../components/Layout';
 
@@ -21,6 +21,26 @@ function blankSupply() {
       contact_phone: '',
     },
   };
+}
+
+function blankContact() {
+  return { computingId: '', contactRole: '', isPrimary: false, editingId: '' };
+}
+
+function blankAdvertisement() {
+  return {
+    platform: '',
+    advertisementType: '',
+    contentLink: '',
+    scheduledPostDate: '',
+    actualPostDate: '',
+    status: 'planned',
+    editingId: '',
+  };
+}
+
+function blankDocument() {
+  return { documentName: '', documentType: '', file: null, editingId: '' };
 }
 
 function readStoredUser() {
@@ -86,6 +106,11 @@ function formatDate(value) {
   });
 }
 
+function inputDate(value) {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : '';
+}
+
 function formatTime(value) {
   if (!value) return 'Time TBD';
   const match = String(value).match(/^(\d{1,2}):(\d{2})/);
@@ -120,6 +145,9 @@ export default function ManageEvents() {
   const [supplies, setSupplies] = useState({});
   const [showForm, setShowForm] = useState({});
   const [supplyForm, setSupplyForm] = useState({});
+  const [contactForm, setContactForm] = useState({});
+  const [adForm, setAdForm] = useState({});
+  const [documentForm, setDocumentForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
@@ -138,6 +166,19 @@ export default function ManageEvents() {
     }
   };
 
+  const fetchEvents = useCallback(async () => {
+    const authHeaders = getAuthHeaders();
+    const res = await fetch(`${API_BASE}/api/events?limit=100&order=asc`, {
+      headers: { Accept: 'application/json', ...authHeaders },
+    });
+    const data = await res.json().catch(() => []);
+    if (!res.ok) throw new Error(data.message || `Events request failed ${res.status}`);
+    const rows = Array.isArray(data) ? data : [];
+    setEvents(rows);
+    await Promise.all(rows.map(evt => fetchSupplies(eventId(evt))));
+    return rows;
+  }, []);
+
   useEffect(() => {
     async function loadEvents() {
       setLoading(true);
@@ -145,17 +186,12 @@ export default function ManageEvents() {
 
       try {
         const authHeaders = getAuthHeaders();
-        const [eventsRes, profileRes] = await Promise.all([
-          fetch(`${API_BASE}/api/events?limit=100&order=asc`, {
-            headers: { Accept: 'application/json', ...authHeaders },
-          }),
+        const [, profileRes] = await Promise.all([
+          fetchEvents(),
           authHeaders.Authorization
             ? fetch(`${API_BASE}/api/profile`, { headers: { Accept: 'application/json', ...authHeaders } })
             : Promise.resolve(null),
         ]);
-
-        const eventData = await eventsRes.json().catch(() => []);
-        if (!eventsRes.ok) throw new Error(eventData.message || `Events request failed ${eventsRes.status}`);
 
         if (profileRes) {
           if (!profileRes.ok) throw new Error(`Profile request failed ${profileRes.status}`);
@@ -164,9 +200,6 @@ export default function ManageEvents() {
           setUser(profile);
         }
 
-        const rows = Array.isArray(eventData) ? eventData : [];
-        setEvents(rows);
-        await Promise.all(rows.map(evt => fetchSupplies(eventId(evt))));
       } catch (err) {
         setError(err.message || 'Failed to load events');
       } finally {
@@ -175,7 +208,7 @@ export default function ManageEvents() {
     }
 
     loadEvents();
-  }, []);
+  }, [fetchEvents]);
 
   const handleShowForm = id => {
     setActionError('');
@@ -264,6 +297,187 @@ export default function ManageEvents() {
       setActionError(err.message || 'Failed to confirm item spending');
     } finally {
       setPendingKey('');
+    }
+  };
+
+  const saveContact = async id => {
+    const form = contactForm[id] || blankContact();
+    if (!form.computingId.trim()) return setActionError('Contact computing ID is required.');
+    const method = form.editingId ? 'PUT' : 'POST';
+    const url = form.editingId
+      ? `${API_BASE}/api/events/${id}/contacts/${encodeURIComponent(form.editingId)}`
+      : `${API_BASE}/api/events/${id}/contacts`;
+    await saveAsset(url, method, {
+      computingId: form.computingId.trim(),
+      contactRole: form.contactRole.trim() || null,
+      isPrimary: form.isPrimary,
+    });
+    setContactForm(prev => ({ ...prev, [id]: blankContact() }));
+  };
+
+  const editContact = (id, contact) => {
+    setContactForm(prev => ({
+      ...prev,
+      [id]: {
+        computingId: contact.computing_id,
+        contactRole: contact.contact_role || '',
+        isPrimary: Boolean(contact.is_primary),
+        editingId: contact.computing_id,
+      },
+    }));
+  };
+
+  const deleteContact = async (id, computingId) => {
+    await saveAsset(`${API_BASE}/api/events/${id}/contacts/${encodeURIComponent(computingId)}`, 'DELETE');
+  };
+
+  const saveAdvertisement = async id => {
+    const form = adForm[id] || blankAdvertisement();
+    const method = form.editingId ? 'PUT' : 'POST';
+    const url = form.editingId
+      ? `${API_BASE}/api/events/${id}/advertisements/${form.editingId}`
+      : `${API_BASE}/api/events/${id}/advertisements`;
+    await saveAsset(url, method, {
+      platform: form.platform.trim() || null,
+      advertisementType: form.advertisementType.trim() || null,
+      contentLink: form.contentLink.trim() || null,
+      scheduledPostDate: form.scheduledPostDate || null,
+      actualPostDate: form.actualPostDate || null,
+      status: form.status,
+    });
+    setAdForm(prev => ({ ...prev, [id]: blankAdvertisement() }));
+  };
+
+  const editAdvertisement = (id, ad) => {
+    setAdForm(prev => ({
+      ...prev,
+      [id]: {
+        platform: ad.platform || '',
+        advertisementType: ad.advertisement_type || '',
+        contentLink: ad.content_link || '',
+        scheduledPostDate: inputDate(ad.scheduled_post_date),
+        actualPostDate: inputDate(ad.actual_post_date),
+        status: ad.status || 'planned',
+        editingId: ad.advertisement_id,
+      },
+    }));
+  };
+
+  const deleteAdvertisement = async (id, adId) => {
+    await saveAsset(`${API_BASE}/api/events/${id}/advertisements/${adId}`, 'DELETE');
+  };
+
+  const uploadDocument = async (id, form) => {
+    const uploadRes = await fetch(`${API_BASE}/api/events/${id}/documents/upload-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ filename: form.file.name, contentType: form.file.type, size: form.file.size }),
+    });
+    const uploadData = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok) throw new Error(uploadData.message || `Upload URL failed ${uploadRes.status}`);
+    const s3Res = await fetch(uploadData.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': form.file.type },
+      body: form.file,
+    });
+    if (!s3Res.ok) throw new Error(`S3 upload failed ${s3Res.status}`);
+    return uploadData.key;
+  };
+
+  const saveDocument = async id => {
+    const form = documentForm[id] || blankDocument();
+    if (!form.documentName.trim()) return setActionError('Document name is required.');
+    if (form.editingId) {
+      await saveAsset(`${API_BASE}/api/events/${id}/documents/${form.editingId}`, 'PUT', {
+        documentName: form.documentName.trim(),
+        documentType: form.documentType.trim() || null,
+      });
+    } else {
+      if (!form.file) return setActionError('Document file is required.');
+      const key = await uploadDocument(id, form);
+      await saveAsset(`${API_BASE}/api/events/${id}/documents`, 'POST', {
+        documentName: form.documentName.trim(),
+        documentType: form.documentType.trim() || form.file.type,
+        key,
+      });
+    }
+    setDocumentForm(prev => ({ ...prev, [id]: blankDocument() }));
+  };
+
+  const editDocument = (id, document) => {
+    setDocumentForm(prev => ({
+      ...prev,
+      [id]: {
+        documentName: document.document_name || '',
+        documentType: document.document_type || '',
+        file: null,
+        editingId: document.document_id,
+      },
+    }));
+  };
+
+  const deleteDocument = async (id, documentId) => {
+    await saveAsset(`${API_BASE}/api/events/${id}/documents/${documentId}`, 'DELETE');
+  };
+
+  const openDocument = async (id, documentId) => {
+    const res = await fetch(`${API_BASE}/api/events/${id}/documents/${documentId}/download-url`, {
+      headers: { Accept: 'application/json', ...getAuthHeaders() },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || `Download failed ${res.status}`);
+    window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const uploadReceipt = async (id, expenseId, file) => {
+    const uploadRes = await fetch(`${API_BASE}/api/events/${id}/expenses/${expenseId}/receipt/upload-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ filename: file.name, contentType: file.type, size: file.size }),
+    });
+    const uploadData = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok) throw new Error(uploadData.message || `Receipt upload URL failed ${uploadRes.status}`);
+    const s3Res = await fetch(uploadData.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!s3Res.ok) throw new Error(`S3 upload failed ${s3Res.status}`);
+    await saveAsset(`${API_BASE}/api/events/${id}/expenses/${expenseId}/receipt`, 'PUT', { key: uploadData.key });
+  };
+
+  const openReceipt = async (id, expenseId) => {
+    const res = await fetch(`${API_BASE}/api/events/${id}/expenses/${expenseId}/receipt/download-url`, {
+      headers: { Accept: 'application/json', ...getAuthHeaders() },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || `Receipt failed ${res.status}`);
+    window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const deleteReceipt = async (id, expenseId) => {
+    await saveAsset(`${API_BASE}/api/events/${id}/expenses/${expenseId}/receipt`, 'DELETE');
+  };
+
+  const saveAsset = async (url, method, body) => {
+    setActionError('');
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+          ...getAuthHeaders(),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Request failed ${res.status}`);
+      await fetchEvents();
+      return data;
+    } catch (err) {
+      setActionError(err.message || 'Action failed');
+      throw err;
     }
   };
 
@@ -361,10 +575,35 @@ export default function ManageEvents() {
                                 <strong style={styles.itemTotal}>{formatCurrency(total)}</strong>
                                 <span style={styles.vendorText}>Vendor: {display(item.vendor?.company)}</span>
                                 {spent ? (
-                                  <span style={styles.spentBadge}>
-                                    <CheckCircle2 size={16} />
-                                    Spent {formatCurrency(item.spentAmount ?? total)}
-                                  </span>
+                                  <>
+                                    <span style={styles.spentBadge}>
+                                      <CheckCircle2 size={16} />
+                                      Spent {formatCurrency(item.spentAmount ?? total)}
+                                    </span>
+                                    {canManage && item.expenseId && (
+                                      <div style={styles.inlineActions}>
+                                        <label style={styles.smallButton}>
+                                          {item.receiptUrl ? 'Replace Receipt' : 'Add Receipt'}
+                                          <input
+                                            type="file"
+                                            accept="application/pdf,image/png,image/jpeg,image/webp"
+                                            onChange={event => {
+                                              const file = event.target.files?.[0];
+                                              if (file) uploadReceipt(id, item.expenseId, file).catch(() => {});
+                                              event.target.value = '';
+                                            }}
+                                            style={styles.fileInput}
+                                          />
+                                        </label>
+                                        {item.receiptUrl && (
+                                          <>
+                                            <button type="button" onClick={() => openReceipt(id, item.expenseId).catch(err => setActionError(err.message))} style={styles.smallButton}>Open</button>
+                                            <button type="button" onClick={() => deleteReceipt(id, item.expenseId).catch(() => {})} style={styles.dangerSmallButton}>Remove</button>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
                                 ) : canManage ? (
                                   <button
                                     type="button"
@@ -383,6 +622,85 @@ export default function ManageEvents() {
                       </div>
                     )}
                   </section>
+
+                  {canManage && (
+                    <section style={styles.assetGrid}>
+                      <div style={styles.assetPanel}>
+                        <h3 style={styles.sectionTitle}>Event Contacts</h3>
+                        {(evt.contacts || []).map(contact => (
+                          <div key={contact.computing_id} style={styles.assetRow}>
+                            <span>{display(contact.computing_id)} {contact.is_primary ? '(Primary)' : ''}</span>
+                            <span>{display(contact.contact_role)}</span>
+                            <div style={styles.inlineActions}>
+                              <button type="button" onClick={() => editContact(id, contact)} style={styles.smallButton}>Edit</button>
+                              <button type="button" onClick={() => deleteContact(id, contact.computing_id).catch(() => {})} style={styles.dangerSmallButton}>Delete</button>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={styles.compactForm}>
+                          <input placeholder="Computing ID" value={(contactForm[id] || blankContact()).computingId} onChange={event => setContactForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankContact()), computingId: event.target.value } }))} style={styles.input} />
+                          <input placeholder="Role" value={(contactForm[id] || blankContact()).contactRole} onChange={event => setContactForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankContact()), contactRole: event.target.value } }))} style={styles.input} />
+                          <label style={styles.checkboxLabel}>
+                            <input type="checkbox" checked={(contactForm[id] || blankContact()).isPrimary} onChange={event => setContactForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankContact()), isPrimary: event.target.checked } }))} />
+                            Primary
+                          </label>
+                          <button type="button" onClick={() => saveContact(id).catch(() => {})} style={styles.primaryButton}>{(contactForm[id] || blankContact()).editingId ? 'Update Contact' : 'Add Contact'}</button>
+                        </div>
+                      </div>
+
+                      <div style={styles.assetPanel}>
+                        <h3 style={styles.sectionTitle}>Advertisements</h3>
+                        {(evt.advertisements || []).map(ad => (
+                          <div key={ad.advertisement_id} style={styles.assetRow}>
+                            <span>{display(ad.platform)}</span>
+                            <span>{display(ad.advertisement_type)} - {display(ad.status)}</span>
+                            <div style={styles.inlineActions}>
+                              {ad.content_link && <a href={ad.content_link} target="_blank" rel="noopener noreferrer" style={styles.itemLink}>Open</a>}
+                              <button type="button" onClick={() => editAdvertisement(id, ad)} style={styles.smallButton}>Edit</button>
+                              <button type="button" onClick={() => deleteAdvertisement(id, ad.advertisement_id).catch(() => {})} style={styles.dangerSmallButton}>Delete</button>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={styles.compactForm}>
+                          <input placeholder="Platform" value={(adForm[id] || blankAdvertisement()).platform} onChange={event => setAdForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankAdvertisement()), platform: event.target.value } }))} style={styles.input} />
+                          <input placeholder="Type" value={(adForm[id] || blankAdvertisement()).advertisementType} onChange={event => setAdForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankAdvertisement()), advertisementType: event.target.value } }))} style={styles.input} />
+                          <input placeholder="Content link" value={(adForm[id] || blankAdvertisement()).contentLink} onChange={event => setAdForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankAdvertisement()), contentLink: event.target.value } }))} style={styles.input} />
+                          <select value={(adForm[id] || blankAdvertisement()).status} onChange={event => setAdForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankAdvertisement()), status: event.target.value } }))} style={styles.input}>
+                            <option value="planned">Planned</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="posted">Posted</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <input type="date" value={(adForm[id] || blankAdvertisement()).scheduledPostDate} onChange={event => setAdForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankAdvertisement()), scheduledPostDate: event.target.value } }))} style={styles.input} />
+                          <input type="date" value={(adForm[id] || blankAdvertisement()).actualPostDate} onChange={event => setAdForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankAdvertisement()), actualPostDate: event.target.value } }))} style={styles.input} />
+                          <button type="button" onClick={() => saveAdvertisement(id).catch(() => {})} style={styles.primaryButton}>{(adForm[id] || blankAdvertisement()).editingId ? 'Update Ad' : 'Add Ad'}</button>
+                        </div>
+                      </div>
+
+                      <div style={styles.assetPanelWide}>
+                        <h3 style={styles.sectionTitle}>Event Documents</h3>
+                        {(evt.documents || []).map(document => (
+                          <div key={document.document_id} style={styles.assetRow}>
+                            <span>{display(document.document_name)}</span>
+                            <span>{display(document.document_type)}</span>
+                            <div style={styles.inlineActions}>
+                              <button type="button" onClick={() => openDocument(id, document.document_id).catch(err => setActionError(err.message))} style={styles.smallButton}>Open</button>
+                              <button type="button" onClick={() => editDocument(id, document)} style={styles.smallButton}>Edit</button>
+                              <button type="button" onClick={() => deleteDocument(id, document.document_id).catch(() => {})} style={styles.dangerSmallButton}>Delete</button>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={styles.compactForm}>
+                          <input placeholder="Document name" value={(documentForm[id] || blankDocument()).documentName} onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), documentName: event.target.value } }))} style={styles.input} />
+                          <input placeholder="Document type" value={(documentForm[id] || blankDocument()).documentType} onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), documentType: event.target.value } }))} style={styles.input} />
+                          {!(documentForm[id] || blankDocument()).editingId && (
+                            <input type="file" onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), file: event.target.files?.[0] || null } }))} style={styles.input} />
+                          )}
+                          <button type="button" onClick={() => saveDocument(id).catch(() => {})} style={styles.primaryButton}>{(documentForm[id] || blankDocument()).editingId ? 'Update Document' : 'Add Document'}</button>
+                        </div>
+                      </div>
+                    </section>
+                  )}
 
                   {canManage && showForm[id] && (
                     <section style={styles.addForm}>
@@ -746,6 +1064,90 @@ const styles = {
     fontFamily: 'Montserrat, sans-serif',
     fontWeight: 800,
     cursor: 'pointer',
+  },
+  smallButton: {
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 30,
+    padding: '0 9px',
+    border: '1px solid #d7dce2',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#003e83',
+    fontFamily: 'Montserrat, sans-serif',
+    fontSize: 12,
+    fontWeight: 800,
+    cursor: 'pointer',
+    overflow: 'hidden',
+  },
+  dangerSmallButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 30,
+    padding: '0 9px',
+    border: '1px solid #fecdca',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#b42318',
+    fontFamily: 'Montserrat, sans-serif',
+    fontSize: 12,
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+  inlineActions: {
+    display: 'flex',
+    gap: 6,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
+  fileInput: {
+    position: 'absolute',
+    inset: 0,
+    opacity: 0,
+    cursor: 'pointer',
+  },
+  assetGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: 14,
+  },
+  assetPanel: {
+    display: 'grid',
+    gap: 10,
+    padding: 14,
+    border: '1px solid #dfe4ea',
+    borderRadius: 8,
+    background: '#fbfcfd',
+  },
+  assetPanelWide: {
+    display: 'grid',
+    gap: 10,
+    padding: 14,
+    border: '1px solid #dfe4ea',
+    borderRadius: 8,
+    background: '#fbfcfd',
+    gridColumn: '1 / -1',
+  },
+  assetRow: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto',
+    gap: 8,
+    alignItems: 'center',
+    padding: 10,
+    border: '1px solid #edf0f3',
+    borderRadius: 6,
+    background: '#fff',
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  compactForm: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: 8,
+    alignItems: 'center',
   },
   addForm: {
     display: 'grid',

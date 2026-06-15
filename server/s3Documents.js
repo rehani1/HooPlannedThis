@@ -95,6 +95,18 @@ export function buildProfilePhotoKey({ computingId, filename }) {
   ].join('/');
 }
 
+export function buildReceiptKey({ councilYearId, committeeId, eventId, expenseId, filename }) {
+  const randomId = crypto.randomUUID();
+  return [
+    `council-years/${Number(councilYearId)}`,
+    `committees/${Number(committeeId)}`,
+    `events/${Number(eventId)}`,
+    `receipts/${Number(expenseId)}`,
+    randomId,
+    safeFilename(filename),
+  ].join('/');
+}
+
 export async function createUploadUrl({ key, contentType }) {
   const command = new PutObjectCommand({
     Bucket: requireBucket(),

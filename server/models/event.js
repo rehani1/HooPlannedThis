@@ -134,6 +134,10 @@ function normalizeEventDocument(document = {}) {
   };
 }
 
+function normalizeAdvertisementInput(data = {}) {
+  return normalizeAdvertisement(data);
+}
+
 function normalizeEvent(data = {}) {
   const location = normalizeLocation(data);
 
@@ -587,6 +591,158 @@ export async function deleteEventDocument(documentId) {
     [document.document_id]
   );
   return document;
+}
+
+export async function updateEventDocument(documentId, data) {
+  const id = positiveInteger(documentId, 'Invalid document id');
+  const documentName = requiredString(data.documentName ?? data.document_name, 'Document name is required');
+  const documentType = optionalString(data.documentType ?? data.document_type);
+
+  await pool.query(
+    `UPDATE EventDocument
+        SET document_name = ?,
+            document_type = ?
+      WHERE document_id = ?`,
+    [documentName, documentType, id]
+  );
+
+  return getEventDocumentById(id);
+}
+
+export async function createEventContact(eventId, data) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  const contact = normalizeEventContact(data);
+  await pool.query(
+    `INSERT INTO EventContact
+       (event_id, computing_id, contact_role, is_primary)
+     VALUES (?,?,?,?)
+     ON DUPLICATE KEY UPDATE
+       contact_role = VALUES(contact_role),
+       is_primary = VALUES(is_primary)`,
+    [id, contact.computingId, contact.contactRole, contact.isPrimary ? 1 : 0]
+  );
+  return { event_id: id, computing_id: contact.computingId, contact_role: contact.contactRole, is_primary: contact.isPrimary ? 1 : 0 };
+}
+
+export async function updateEventContact(eventId, computingId, data) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  const contactRole = optionalString(data.contactRole ?? data.contact_role);
+  const isPrimary = Boolean(data.isPrimary ?? data.is_primary);
+  const result = await pool.query(
+    `UPDATE EventContact
+        SET contact_role = ?,
+            is_primary = ?
+      WHERE event_id = ?
+        AND computing_id = ?`,
+    [contactRole, isPrimary ? 1 : 0, id, computingId]
+  );
+  if (!result.affectedRows) {
+    const err = new Error('Event contact not found');
+    err.status = 404;
+    throw err;
+  }
+  return { event_id: id, computing_id: computingId, contact_role: contactRole, is_primary: isPrimary ? 1 : 0 };
+}
+
+export async function deleteEventContact(eventId, computingId) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  const result = await pool.query(
+    `DELETE FROM EventContact
+      WHERE event_id = ?
+        AND computing_id = ?`,
+    [id, computingId]
+  );
+  if (!result.affectedRows) {
+    const err = new Error('Event contact not found');
+    err.status = 404;
+    throw err;
+  }
+}
+
+export async function createEventAdvertisement(eventId, data, createdBy) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  const advertisement = normalizeAdvertisementInput(data);
+  const result = await pool.query(
+    `INSERT INTO Advertisement
+       (event_id, created_by, platform, advertisement_type, content_link,
+        scheduled_post_date, actual_post_date, status)
+     VALUES (?,?,?,?,?,?,?,?)`,
+    [
+      id,
+      createdBy,
+      advertisement.platform,
+      advertisement.advertisementType,
+      advertisement.contentLink,
+      advertisement.scheduledPostDate,
+      advertisement.actualPostDate,
+      advertisement.status,
+    ]
+  );
+  return getEventAdvertisementById(result.insertId);
+}
+
+export async function getEventAdvertisementById(advertisementId) {
+  const id = positiveInteger(advertisementId, 'Invalid advertisement id');
+  const rows = await pool.query(
+    `SELECT a.advertisement_id,
+            a.event_id,
+            a.created_by,
+            a.platform,
+            a.advertisement_type,
+            a.content_link,
+            a.scheduled_post_date,
+            a.actual_post_date,
+            a.status,
+            e.committee_id,
+            c.council_year_id
+       FROM Advertisement a
+       JOIN CouncilEvent e ON a.event_id = e.event_id
+       JOIN Committee c ON e.committee_id = c.committee_id
+      WHERE a.advertisement_id = ?
+      LIMIT 1`,
+    [id]
+  );
+  if (!rows.length) {
+    const err = new Error('Advertisement not found');
+    err.status = 404;
+    throw err;
+  }
+  return rows[0];
+}
+
+export async function updateEventAdvertisement(advertisementId, data) {
+  const existing = await getEventAdvertisementById(advertisementId);
+  const advertisement = normalizeAdvertisementInput(data);
+  await pool.query(
+    `UPDATE Advertisement
+        SET platform = ?,
+            advertisement_type = ?,
+            content_link = ?,
+            scheduled_post_date = ?,
+            actual_post_date = ?,
+            status = ?
+      WHERE advertisement_id = ?`,
+    [
+      advertisement.platform,
+      advertisement.advertisementType,
+      advertisement.contentLink,
+      advertisement.scheduledPostDate,
+      advertisement.actualPostDate,
+      advertisement.status,
+      existing.advertisement_id,
+    ]
+  );
+  return getEventAdvertisementById(existing.advertisement_id);
+}
+
+export async function deleteEventAdvertisement(advertisementId) {
+  const advertisement = await getEventAdvertisementById(advertisementId);
+  await pool.query(
+    `DELETE FROM Advertisement
+      WHERE advertisement_id = ?`,
+    [advertisement.advertisement_id]
+  );
+  return advertisement;
 }
 
 export async function getEventById(eventId) {
