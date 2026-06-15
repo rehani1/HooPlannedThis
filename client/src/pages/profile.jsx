@@ -20,6 +20,11 @@ function formatDate(value) {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+function fullName(profile) {
+  const name = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ').trim();
+  return name || display(profile?.username || profile?.id);
+}
+
 export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [photoSrc, setPhotoSrc] = useState('');
@@ -199,7 +204,7 @@ export default function Profile() {
         <header style={styles.header}>
           <div>
             <h1 style={styles.title}>Profile</h1>
-            <p style={styles.subtitle}>Council member information from the ERD.</p>
+            <p style={styles.subtitle}>Manage your council identity and bio.</p>
           </div>
         </header>
 
@@ -208,49 +213,55 @@ export default function Profile() {
 
         {!loading && profile && (
           <section style={styles.panel}>
-            <div style={styles.photoRow}>
-              <button
-                type="button"
-                onClick={() => setPhotoModalOpen(true)}
-                style={styles.photoButton}
-                aria-label={photoSrc ? 'Replace or remove profile photo' : 'Add profile photo'}
-              >
-                {photoSrc ? (
-                  <img src={photoSrc} alt="" style={styles.photo} />
-                ) : (
-                  <span style={styles.photoPlaceholder}>No Photo</span>
-                )}
-              </button>
+            <div style={styles.summary}>
+              <div style={styles.photoRow}>
+                <button
+                  type="button"
+                  onClick={() => setPhotoModalOpen(true)}
+                  style={styles.photoButton}
+                  aria-label={photoSrc ? 'Replace or remove profile photo' : 'Add profile photo'}
+                >
+                  {photoSrc ? (
+                    <img src={photoSrc} alt="" style={styles.photo} />
+                  ) : (
+                    <span style={styles.photoPlaceholder}>No Photo</span>
+                  )}
+                </button>
+              </div>
+              <div style={styles.identity}>
+                <h2 style={styles.name}>{fullName(profile)}</h2>
+                <p style={styles.email}>{display(profile.email)}</p>
+                <div style={styles.pillRow}>
+                  <span style={styles.pill}>{display(profile.username || profile.id)}</span>
+                  <span style={styles.pill}>Class of {display(profile.gradYear)}</span>
+                  <span style={styles.pill}>{display(profile.academicYear)}</span>
+                </div>
+              </div>
             </div>
 
-            <dl style={styles.grid}>
-              <div style={styles.field}>
-                <dt style={styles.label}>Computing ID</dt>
-                <dd style={styles.value}>{display(profile.username || profile.id)}</dd>
+            <div style={styles.infoGrid}>
+              <div style={styles.infoItem}>
+                <span style={styles.label}>Council</span>
+                <strong style={styles.value}>{display(profile.councilClassName)}</strong>
               </div>
-              <div style={styles.field}>
-                <dt style={styles.label}>Council Year ID</dt>
-                <dd style={styles.value}>{display(profile.councilYearId)}</dd>
+              <div style={styles.infoItem}>
+                <span style={styles.label}>Committee Role</span>
+                <strong style={styles.value}>{display(profile.committeeRole)}</strong>
               </div>
-              <div style={styles.field}>
-                <dt style={styles.label}>First Name</dt>
-                <dd style={styles.value}>{display(profile.firstName)}</dd>
+              <div style={styles.infoItem}>
+                <span style={styles.label}>Joined</span>
+                <strong style={styles.value}>{formatDate(profile.createdAccountAt)}</strong>
               </div>
-              <div style={styles.field}>
-                <dt style={styles.label}>Last Name</dt>
-                <dd style={styles.value}>{display(profile.lastName)}</dd>
+            </div>
+
+            <section style={styles.bioSection}>
+              <div style={styles.sectionHeader}>
+                <h2 style={styles.sectionTitle}>Bio</h2>
+                {!editingBio && (
+                  <button type="button" onClick={startBioEdit} style={styles.secondaryButton}>Edit Bio</button>
+                )}
               </div>
-              <div style={styles.field}>
-                <dt style={styles.label}>Email</dt>
-                <dd style={styles.value}>{display(profile.email)}</dd>
-              </div>
-              <div style={styles.field}>
-                <dt style={styles.label}>Photo URL</dt>
-                <dd style={styles.value}>{display(profile.photoUrl)}</dd>
-              </div>
-              <div style={styles.fieldWide}>
-                <dt style={styles.label}>Bio</dt>
-                <dd style={styles.value}>
+              <div style={styles.value}>
                   {editingBio ? (
                     <div style={styles.bioEditor}>
                       <textarea
@@ -267,18 +278,10 @@ export default function Profile() {
                       </div>
                     </div>
                   ) : (
-                    <div style={styles.bioDisplay}>
-                      <span>{display(profile.bio)}</span>
-                      <button type="button" onClick={startBioEdit} style={styles.secondaryButton}>Edit Bio</button>
-                    </div>
+                    <p style={styles.bioText}>{display(profile.bio)}</p>
                   )}
-                </dd>
               </div>
-              <div style={styles.field}>
-                <dt style={styles.label}>Created Account At</dt>
-                <dd style={styles.value}>{formatDate(profile.createdAccountAt)}</dd>
-              </div>
-            </dl>
+            </section>
           </section>
         )}
 
@@ -362,24 +365,32 @@ const styles = {
   },
   panel: {
     display: 'grid',
-    gap: 20,
+    gap: 24,
     background: '#fff',
     border: '1px solid #dfe4ea',
     borderRadius: 8,
-    padding: 24,
+    padding: 28,
     boxShadow: '0 1px 3px rgba(16, 24, 40, 0.06)',
   },
+  summary: {
+    display: 'flex',
+    gap: 22,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    paddingBottom: 22,
+    borderBottom: '1px solid #edf0f3',
+  },
   photo: {
-    width: 96,
-    height: 96,
+    width: 128,
+    height: 128,
     borderRadius: 8,
     objectFit: 'cover',
     border: '1px solid #dfe4ea',
   },
   photoButton: {
     display: 'inline-flex',
-    width: 96,
-    height: 96,
+    width: 128,
+    height: 128,
     padding: 0,
     border: 0,
     borderRadius: 8,
@@ -395,12 +406,46 @@ const styles = {
   photoPlaceholder: {
     display: 'grid',
     placeItems: 'center',
-    width: 96,
-    height: 96,
+    width: 128,
+    height: 128,
     borderRadius: 8,
     border: '1px solid #dfe4ea',
     background: '#f5f7fa',
     color: '#667085',
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  identity: {
+    display: 'grid',
+    gap: 8,
+    minWidth: 260,
+  },
+  name: {
+    margin: 0,
+    color: '#1b365d',
+    fontSize: 34,
+    fontWeight: 800,
+  },
+  email: {
+    margin: 0,
+    color: '#4d5b6a',
+    fontSize: 16,
+    fontWeight: 700,
+  },
+  pillRow: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginTop: 4,
+  },
+  pill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    minHeight: 28,
+    padding: '0 10px',
+    borderRadius: 999,
+    background: '#eef4ff',
+    color: '#003e83',
     fontSize: 12,
     fontWeight: 800,
   },
@@ -452,10 +497,42 @@ const styles = {
     justifyContent: 'flex-end',
     flexWrap: 'wrap',
   },
-  bioDisplay: {
+  infoGrid: {
     display: 'grid',
-    gap: 10,
-    justifyItems: 'start',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: 12,
+  },
+  infoItem: {
+    display: 'grid',
+    gap: 5,
+    padding: 14,
+    border: '1px solid #edf0f3',
+    borderRadius: 8,
+    background: '#fbfcfd',
+  },
+  bioSection: {
+    display: 'grid',
+    gap: 12,
+    paddingTop: 2,
+  },
+  sectionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  sectionTitle: {
+    margin: 0,
+    color: '#003e83',
+    fontSize: 20,
+    fontWeight: 800,
+  },
+  bioText: {
+    margin: 0,
+    color: '#1b365d',
+    lineHeight: 1.55,
+    fontWeight: 700,
   },
   fileInput: {
     position: 'absolute',
@@ -549,19 +626,6 @@ const styles = {
     padding: '10px 14px',
     fontWeight: 800,
     cursor: 'pointer',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: 16,
-    margin: 0,
-  },
-  field: {
-    minWidth: 0,
-  },
-  fieldWide: {
-    minWidth: 0,
-    gridColumn: '1 / -1',
   },
   label: {
     color: '#667085',
