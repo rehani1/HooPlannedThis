@@ -1,1 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --text-blue: #003e83;
+  --text-body: #1b365d;
+  --button-orange: #ff8937;
+  --button-orange-dark: #e97423;
+  --button-orange-soft: #fff3ea;
+  --button-border: #f7b27a;
+  --button-danger: #b42318;
+  --button-danger-border: #fecdca;
+}
+
+button,
+a[role="button"] {
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+.page-content button,
+.page-content input[type="button"],
+.page-content input[type="submit"] {
+  font-family: 'Montserrat', sans-serif !important;
+  letter-spacing: 0 !important;
+  box-sizing: border-box !important;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}

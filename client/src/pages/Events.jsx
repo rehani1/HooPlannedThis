@@ -140,7 +140,7 @@ function normalizeStatus(value) {
 
 function statusStyles(value) {
   const status = normalizeStatus(value);
-  if (status === 'completed') return { background: '#ecfdf3', color: '#027a48' };
+  if (status === 'completed') return { background: 'var(--button-orange-soft)', color: '#003e83' };
   if (status === 'cancelled') return { background: '#fee4e2', color: '#b42318' };
   if (status === 'in progress') return { background: '#e0f2fe', color: '#075985' };
   return { background: '#fff7e6', color: '#9a5b00' };
@@ -583,7 +583,7 @@ const styles = {
     gap: 8,
     minHeight: 40,
     padding: '0 14px',
-    border: '1px solid #d7dce2',
+    border: '1px solid var(--button-border)',
     borderRadius: 6,
     background: '#fff',
     color: '#003e83',
@@ -643,7 +643,7 @@ const styles = {
     flex: '1 1 260px',
     minHeight: 42,
     padding: '0 12px',
-    border: '1px solid #d7dce2',
+    border: '1px solid var(--button-border)',
     borderRadius: 6,
     background: '#fff',
     color: '#667085',
@@ -659,7 +659,7 @@ const styles = {
   select: {
     minHeight: 42,
     padding: '0 12px',
-    border: '1px solid #d7dce2',
+    border: '1px solid var(--button-border)',
     borderRadius: 6,
     background: '#fff',
     color: '#003e83',
@@ -726,7 +726,7 @@ const styles = {
     gap: 6,
     minHeight: 32,
     padding: '0 10px',
-    border: '1px solid #d7dce2',
+    border: '1px solid var(--button-border)',
     borderRadius: 6,
     background: '#fff',
     color: '#003e83',

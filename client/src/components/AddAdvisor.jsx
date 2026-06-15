@@ -314,7 +314,7 @@ const styles = {
   editBtn: {
     background: '#fff',
     color: '#003e83',
-    border: '1px solid #d7dce2',
+    border: '1px solid var(--button-border)',
     cursor: 'pointer',
     padding: '7px 12px',
     borderRadius: 6,

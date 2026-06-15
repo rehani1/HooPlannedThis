@@ -440,7 +440,7 @@ const styles = {
   },
   primaryLink: {
     flex: '0 0 auto',
-    background: '#003e83',
+    background: 'var(--button-orange)',
     color: '#fff',
     textDecoration: 'none',
     padding: '10px 16px',
@@ -501,7 +501,7 @@ const styles = {
     color: '#1b365d',
   },
   committeeButtonActive: {
-    borderColor: '#003e83',
+    borderColor: 'var(--button-orange)',
     background: '#eef6ff',
   },
   committeeName: {
@@ -551,7 +551,7 @@ const styles = {
   editButton: {
     background: '#fff',
     color: '#003e83',
-    border: '1px solid #d7dce2',
+    border: '1px solid var(--button-border)',
     borderRadius: 6,
     padding: '7px 12px',
     cursor: 'pointer',
@@ -570,14 +570,14 @@ const styles = {
   input: {
     width: '100%',
     boxSizing: 'border-box',
-    border: '1px solid #d7dce2',
+    border: '1px solid var(--button-border)',
     borderRadius: 6,
     padding: 10,
     fontSize: 15,
   },
   saveButton: {
     justifySelf: 'start',
-    background: '#003e83',
+    background: 'var(--button-orange)',
     color: '#fff',
     border: 'none',
     borderRadius: 6,

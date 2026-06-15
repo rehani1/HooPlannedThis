@@ -515,7 +515,7 @@ export default function AdminCreateCouncil() {
 const s = {
   page:{ minHeight:'100vh', background:'#f3f5f7', padding:'32px 24px', boxSizing:'border-box', fontFamily:'Montserrat, sans-serif' },
   content:{ maxWidth:1100, margin:'0 auto' },
-  backBtn:{ display:'inline-flex', alignItems:'center', gap:8, background:'#fff', color:'#003e83', border:'1px solid #d7dce2', padding:'10px 16px', fontSize:15, fontWeight:600, cursor:'pointer', borderRadius:6 },
+  backBtn:{ display:'inline-flex', alignItems:'center', gap:8, background:'#fff', color:'#003e83', border:'1px solid var(--button-border)', padding:'10px 16px', fontSize:15, fontWeight:600, cursor:'pointer', borderRadius:6 },
   h1:{ textAlign:'center', margin:'24px 0 28px', fontSize:40, fontWeight:700, color:'#003e83' },
   panel:{ background:'#fff', border:'1px solid #dfe4ea', borderRadius:8, padding:20, marginBottom:24, boxShadow:'0 1px 3px rgba(16, 24, 40, 0.06)' },
   panelHeader:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, marginBottom:18 },
@@ -524,7 +524,7 @@ const s = {
   dangerTitle:{ color:'#8f1d18', fontSize:22, fontWeight:700, margin:'0 0 8px' },
   dangerText:{ color:'#5c1f1b', margin:0, lineHeight:1.45 },
   resetBtn:{ flex:'0 0 auto', background:'#b42318', color:'#fff', border:'none', cursor:'pointer', padding:'12px 18px', borderRadius:6, fontSize:16, fontWeight:700 },
-  createBtn:{ background:'#003e83', color:'#fff', border:'none', padding:'10px 18px', fontSize:15, fontWeight:700, cursor:'pointer', borderRadius:6 },
+  createBtn:{ background:'var(--button-orange)', color:'#fff', border:'none', padding:'10px 18px', fontSize:15, fontWeight:700, cursor:'pointer', borderRadius:6 },
   councilBlock:{ marginTop:20 },
   tableTitle:{ margin:'0 0 10px', color:'#1b365d', fontSize:18, fontWeight:700 },
   tableWrap:{ overflowX:'auto' },
@@ -547,7 +547,7 @@ const s = {
   denyBtn:{ background:'#b42318', color:'#fff', border:'none', cursor:'pointer', padding:'8px 12px', borderRadius:6, fontSize:14 },
   errorText:{ color:'#b42318', fontWeight:600 },
   emptyText:{ margin:0, color:'#4d5b6a' },
-  editBtn:{ background:'#fff', color:'#003e83', border:'1px solid #d7dce2', cursor:'pointer', padding:'7px 12px', borderRadius:6, fontSize:14, fontWeight:600 },
+  editBtn:{ background:'#fff', color:'#003e83', border:'1px solid var(--button-border)', cursor:'pointer', padding:'7px 12px', borderRadius:6, fontSize:14, fontWeight:600 },
   cancel:{ marginRight:14, padding:'10px 22px', border:'1px solid #888', background:'#fff', cursor:'pointer', borderRadius:6 },
   save:{ padding:'10px 24px', border:'none', background:'#ff8937', color:'#fff', cursor:'pointer', borderRadius:6 },
 };
