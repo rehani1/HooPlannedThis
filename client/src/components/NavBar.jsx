@@ -2,7 +2,7 @@
 import React, { useContext } from 'react'; 
 import { Link, useNavigate } from 'react-router-dom';
 import './NavBar.css';
-import { FaSignOutAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaUser } from 'react-icons/fa';
 import { AuthContext } from '../AuthContext';
 
 
@@ -36,6 +36,7 @@ const NavBar = () => {
       <div className="nav-section">
         <h4 className="section-title">Settings</h4>
         <ul className="nav-list">
+          <li><Link to="/profile"><FaUser className="icon" /> Profile</Link></li>
           <li>
             <button onClick={handleLogout} className="link-button">
               <FaSignOutAlt className="icon" /> Log Out

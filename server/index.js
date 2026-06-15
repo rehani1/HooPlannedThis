@@ -35,6 +35,7 @@ import {
 
 import {
   getUserByUsername,
+  updateUserPhotoUrl,
   createAccountRequest,
   listPendingAccountRequests,
   approveAccountRequest,
@@ -47,9 +48,11 @@ import {
 } from './db.js'
 import {
   buildDocumentKey,
+  buildProfilePhotoKey,
   createDownloadUrl,
   createUploadUrl,
   deleteDocumentObject,
+  validateProfilePhotoUpload,
   validateUpload,
 } from './s3Documents.js'
 
@@ -109,6 +112,12 @@ function publicUser(user) {
   return {
     id: user.id,
     username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    bio: user.bio,
+    photoUrl: user.photoUrl,
+    createdAccountAt: user.createdAccountAt,
     committeeId: user.committeeId,
     committeeRole: user.committeeRole,
     committeeMemberships: user.committeeMemberships || [],
@@ -482,6 +491,94 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/profile', requireAuth, (req, res) => {
   res.json(publicUser(req.user));
+});
+
+app.post('/api/profile/photo/upload-url', requireAuth, async (req, res) => {
+  try {
+    const { filename, contentType, size } = req.body;
+    validateProfilePhotoUpload({ contentType, size });
+
+    const key = buildProfilePhotoKey({
+      computingId: req.user.id,
+      filename,
+    });
+    const uploadUrl = await createUploadUrl({ key, contentType });
+
+    console.info('profile photo upload-url-created', {
+      user: req.user.id,
+      result: 'allowed',
+    });
+
+    res.json({ uploadUrl, key, expiresIn: 300 });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('POST /api/profile/photo/upload-url error', err);
+    res.status(500).json({ message: 'Failed to create profile photo upload URL' });
+  }
+});
+
+app.put('/api/profile/photo', requireAuth, async (req, res) => {
+  try {
+    const key = String(req.body.key || '');
+    const expectedPrefix = `profiles/${req.user.id}/photos/`;
+    if (!key.startsWith(expectedPrefix)) {
+      return res.status(400).json({ message: 'Invalid profile photo key' });
+    }
+
+    const updated = await updateUserPhotoUrl(req.user.id, key);
+    console.info('profile photo metadata-updated', {
+      user: req.user.id,
+      result: 'allowed',
+    });
+
+    res.json(publicUser(updated));
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('PUT /api/profile/photo error', err);
+    res.status(500).json({ message: 'Failed to save profile photo' });
+  }
+});
+
+app.get('/api/profile/photo-url', requireAuth, async (req, res) => {
+  try {
+    if (!req.user.photoUrl) {
+      return res.status(404).json({ message: 'Profile photo not found' });
+    }
+
+    const downloadUrl = await createDownloadUrl(req.user.photoUrl);
+    console.info('profile photo read-url-created', {
+      user: req.user.id,
+      result: 'allowed',
+    });
+
+    res.json({ downloadUrl, expiresIn: 300 });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('GET /api/profile/photo-url error', err);
+    res.status(500).json({ message: 'Failed to create profile photo URL' });
+  }
+});
+
+app.delete('/api/profile/photo', requireAuth, async (req, res) => {
+  try {
+    const existingKey = req.user.photoUrl;
+    if (existingKey) {
+      await updateUserPhotoUrl(req.user.id, null);
+      await deleteDocumentObject(existingKey);
+    }
+
+    const updated = await getUserByUsername(req.user.id);
+    console.info('profile photo deleted', {
+      user: req.user.id,
+      result: 'allowed',
+    });
+
+    res.json(publicUser(updated));
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('DELETE /api/profile/photo error', err);
+    res.status(500).json({ message: 'Failed to remove profile photo' });
+  }
 });
 
 

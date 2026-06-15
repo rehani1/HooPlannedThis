@@ -267,6 +267,22 @@ export default function Events() {
   const plannedCount = events.filter(event => normalizeStatus(event.status) === 'planned').length;
   const committeeOptions = useMemo(() => buildManageableCommitteeOptions(councils, user), [councils, user]);
 
+  const openDocument = async (event, document) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/events/${eventId(event)}/documents/${document.document_id}/download-url`, {
+        headers: {
+          ...getAuthHeaders(),
+          Accept: 'application/json',
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || `Download failed ${res.status}`);
+      window.open(data.downloadUrl, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setError(err.message || 'Failed to open document');
+    }
+  };
+
   const openEdit = event => {
     setEditingEvent(event);
     setSaveError('');
@@ -453,6 +469,20 @@ export default function Events() {
                           {documents.length > 0 && <span style={styles.relatedPill}>{documents.length} document{documents.length === 1 ? '' : 's'}</span>}
                         </div>
                       ) : null}
+                      {canEdit && documents.length > 0 && (
+                        <div style={styles.documentList}>
+                          {documents.map(document => (
+                            <button
+                              key={document.document_id}
+                              type="button"
+                              onClick={() => openDocument(event, document)}
+                              style={styles.documentButton}
+                            >
+                              {document.document_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -742,6 +772,23 @@ const styles = {
     color: '#003e83',
     fontSize: 12,
     fontWeight: 800,
+  },
+  documentList: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  documentButton: {
+    border: '1px solid #c7d7fe',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#003e83',
+    padding: '6px 10px',
+    fontFamily: 'Montserrat, sans-serif',
+    fontSize: 12,
+    fontWeight: 800,
+    cursor: 'pointer',
   },
   eventDetails: {
     display: 'grid',

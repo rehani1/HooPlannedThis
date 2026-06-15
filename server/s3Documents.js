@@ -6,6 +6,7 @@ import path from 'path';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
 const UPLOAD_URL_SECONDS = 300;
 const DOWNLOAD_URL_SECONDS = 300;
 
@@ -17,6 +18,12 @@ const ALLOWED_CONTENT_TYPES = new Set([
   'text/csv',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+]);
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
 ]);
 
 const s3 = new S3Client({ region: AWS_REGION });
@@ -53,6 +60,21 @@ export function validateUpload({ contentType, size }) {
   }
 }
 
+export function validateProfilePhotoUpload({ contentType, size }) {
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+    const err = new Error('Profile photo must be PNG, JPEG, or WebP');
+    err.status = 400;
+    throw err;
+  }
+
+  const parsedSize = Number(size);
+  if (!Number.isInteger(parsedSize) || parsedSize <= 0 || parsedSize > MAX_PROFILE_PHOTO_BYTES) {
+    const err = new Error('Profile photo size must be between 1 byte and 5 MB');
+    err.status = 400;
+    throw err;
+  }
+}
+
 export function buildDocumentKey({ councilYearId, committeeId, eventId, filename }) {
   const randomId = crypto.randomUUID();
   return [
@@ -60,6 +82,15 @@ export function buildDocumentKey({ councilYearId, committeeId, eventId, filename
     `committees/${Number(committeeId)}`,
     `events/${Number(eventId)}`,
     `documents/${randomId}`,
+    safeFilename(filename),
+  ].join('/');
+}
+
+export function buildProfilePhotoKey({ computingId, filename }) {
+  const randomId = crypto.randomUUID();
+  return [
+    `profiles/${safeFilename(computingId)}`,
+    `photos/${randomId}`,
     safeFilename(filename),
   ].join('/');
 }

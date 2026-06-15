@@ -59,6 +59,9 @@
     color: white;
     text-decoration: none;
     transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
   }
   
   .nav-list a:hover {

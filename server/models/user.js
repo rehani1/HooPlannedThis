@@ -6,6 +6,12 @@ export async function getUserByUsername(username) {
   const rows = await pool.query(
     `SELECT cm.computing_id AS id,
             cm.computing_id AS username,
+            cm.first_name AS firstName,
+            cm.last_name AS lastName,
+            cm.email,
+            cm.bio,
+            cm.photo_url AS photoUrl,
+            cm.created_account_at AS createdAccountAt,
             cm.password_hash AS passwordHash,
             cy.council_year_id AS councilYearId,
             cy.class_name AS councilClassName,
@@ -17,7 +23,7 @@ export async function getUserByUsername(username) {
        LEFT JOIN CouncilYear cy ON cm.council_year_id = cy.council_year_id
        LEFT JOIN CommitteeMembership cmem ON cm.computing_id = cmem.computing_id
       WHERE cm.computing_id = ?
-      GROUP BY cm.computing_id, cm.password_hash, cy.council_year_id, cy.class_name, cy.academic_year, cy.grad_year`,
+      GROUP BY cm.computing_id, cm.first_name, cm.last_name, cm.email, cm.bio, cm.photo_url, cm.created_account_at, cm.password_hash, cy.council_year_id, cy.class_name, cy.academic_year, cy.grad_year`,
     [username]
   )
   const user = rows[0];
@@ -148,6 +154,17 @@ export async function createUser({
   } finally {
     conn.release();
   }
+}
+
+export async function updateUserPhotoUrl(username, photoUrl) {
+  await pool.query(
+    `UPDATE CouncilMember
+        SET photo_url = ?
+      WHERE computing_id = ?`,
+    [photoUrl, username]
+  );
+
+  return getUserByUsername(username);
 }
 
 function normalizeCommitteeName(committee) {

@@ -72,7 +72,7 @@ const EMPTY_ADVERTISEMENT = {
 const EMPTY_DOCUMENT = {
   documentName: '',
   documentType: '',
-  fileUrl: '',
+  file: null,
 };
 
 function readStoredUser() {
@@ -465,6 +465,49 @@ export default function CreateEvent() {
     setDocuments(current => current.filter((_, documentIndex) => documentIndex !== index));
   };
 
+  const uploadDocument = async (eventId, document) => {
+    const file = document.file;
+    const uploadRes = await fetch(`${API_BASE}/api/events/${eventId}/documents/upload-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+      }),
+    });
+
+    const uploadData = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok) throw new Error(uploadData.message || `Upload URL failed: ${uploadRes.status}`);
+
+    const s3Res = await fetch(uploadData.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+    if (!s3Res.ok) throw new Error(`S3 upload failed: ${s3Res.status}`);
+
+    const metadataRes = await fetch(`${API_BASE}/api/events/${eventId}/documents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        documentName: document.documentName.trim(),
+        documentType: document.documentType.trim() || file.type,
+        key: uploadData.key,
+      }),
+    });
+
+    const metadata = await metadataRes.json().catch(() => ({}));
+    if (!metadataRes.ok) throw new Error(metadata.message || `Document save failed: ${metadataRes.status}`);
+    return metadata;
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setError('');
@@ -480,11 +523,11 @@ export default function CreateEvent() {
     }
 
     const hasPartialDocument = documents.some(document =>
-      (document.documentName.trim() || document.fileUrl.trim()) &&
-      (!document.documentName.trim() || !document.fileUrl.trim())
+      (document.documentName.trim() || document.file) &&
+      (!document.documentName.trim() || !document.file)
     );
     if (hasPartialDocument) {
-      setError('Each document needs both a document name and file URL');
+      setError('Each document needs both a document name and file');
       return;
     }
 
@@ -543,13 +586,6 @@ export default function CreateEvent() {
           actualPostDate: advertisement.actualPostDate || null,
           status: advertisement.status,
         })),
-      documents: documents
-        .filter(document => document.documentName.trim() || document.fileUrl.trim())
-        .map(document => ({
-          documentName: document.documentName.trim(),
-          documentType: document.documentType.trim() || null,
-          fileUrl: document.fileUrl.trim(),
-        })),
     };
 
     setIsSubmitting(true);
@@ -566,6 +602,13 @@ export default function CreateEvent() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || `Server error: ${res.status}`);
+
+      const eventId = data.id;
+      const documentsToUpload = documents.filter(document => document.documentName.trim() && document.file);
+      for (const document of documentsToUpload) {
+        await uploadDocument(eventId, document);
+      }
+
       navigate('/events', { state: { notice: `Event created with ID ${data.id}` } });
     } catch (err) {
       setError(err.message || 'Failed to create event');
@@ -893,11 +936,10 @@ export default function CreateEvent() {
                         />
                       </label>
                       <label style={styles.labelWide}>
-                        File URL *
+                        File *
                         <input
-                          type="url"
-                          value={document.fileUrl}
-                          onChange={event => updateDocument(index, 'fileUrl', event.target.value)}
+                          type="file"
+                          onChange={event => updateDocument(index, 'file', event.target.files?.[0] || null)}
                           style={styles.input}
                         />
                       </label>
