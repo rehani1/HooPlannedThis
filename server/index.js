@@ -34,7 +34,11 @@ import {
     listItemsByEvent,
     createItem,
     confirmItemSpent,
+    createEventExpense,
+    deleteEventExpense,
     getEventExpenseById,
+    listEventExpenses,
+    updateEventExpense,
     updateEventExpenseReceipt
   } from './models/supply.js';
 import {
@@ -360,6 +364,81 @@ app.post('/api/events/:eventId/items/:supplyId/confirm-spent', requireAuth, asyn
     }
     console.error('POST /api/events/:eventId/items/:supplyId/confirm-spent error', err);
     res.status(500).json({ message: 'Failed to confirm item spending' });
+  }
+});
+
+app.get('/api/events/:eventId/expenses', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only view expenses for events you lead' });
+    }
+    const expenses = await listEventExpenses(req.params.eventId);
+    res.json(expenses);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('GET /api/events/:eventId/expenses error', err);
+    res.status(500).json({ message: 'Failed to load expenses' });
+  }
+});
+
+app.post('/api/events/:eventId/expenses', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only add expenses for events you lead' });
+    }
+    const expense = await createEventExpense(req.params.eventId, req.body);
+    res.status(201).json(expense);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ message: 'Selected vendor was not found' });
+    }
+    console.error('POST /api/events/:eventId/expenses error', err);
+    res.status(500).json({ message: 'Failed to save expense' });
+  }
+});
+
+app.put('/api/events/:eventId/expenses/:expenseId', requireAuth, async (req, res) => {
+  try {
+    const expense = await getEventExpenseById(req.params.expenseId);
+    if (Number(expense.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Expense not found for this event' });
+    }
+    if (!canManageExpense(req.user, expense)) {
+      return res.status(403).json({ message: 'You can only update expenses for events you lead' });
+    }
+    const updated = await updateEventExpense(req.params.expenseId, req.body);
+    res.json(updated);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ message: 'Selected vendor was not found' });
+    }
+    console.error('PUT /api/events/:eventId/expenses/:expenseId error', err);
+    res.status(500).json({ message: 'Failed to update expense' });
+  }
+});
+
+app.delete('/api/events/:eventId/expenses/:expenseId', requireAuth, async (req, res) => {
+  try {
+    const expense = await getEventExpenseById(req.params.expenseId);
+    if (Number(expense.event_id) !== Number(req.params.eventId)) {
+      return res.status(404).json({ message: 'Expense not found for this event' });
+    }
+    if (!canManageExpense(req.user, expense)) {
+      return res.status(403).json({ message: 'You can only delete expenses for events you lead' });
+    }
+    const deleted = await deleteEventExpense(req.params.expenseId);
+    if (deleted.receipt_url) {
+      await deleteDocumentObject(deleted.receipt_url);
+    }
+    res.sendStatus(204);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('DELETE /api/events/:eventId/expenses/:expenseId error', err);
+    res.status(500).json({ message: 'Failed to delete expense' });
   }
 });
 

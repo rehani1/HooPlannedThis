@@ -43,6 +43,18 @@ function blankDocument() {
   return { documentName: '', documentType: '', file: null, editingId: '' };
 }
 
+function blankExpense() {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    vendorId: '',
+    amount: '',
+    expenseDate: today,
+    category: '',
+    description: '',
+    editingId: '',
+  };
+}
+
 function readStoredUser() {
   const saved = localStorage.getItem('user');
   if (!saved) return null;
@@ -143,11 +155,13 @@ export default function ManageEvents() {
   const [user, setUser] = useState(() => readStoredUser());
   const [events, setEvents] = useState([]);
   const [supplies, setSupplies] = useState({});
+  const [expenses, setExpenses] = useState({});
   const [showForm, setShowForm] = useState({});
   const [supplyForm, setSupplyForm] = useState({});
   const [contactForm, setContactForm] = useState({});
   const [adForm, setAdForm] = useState({});
   const [documentForm, setDocumentForm] = useState({});
+  const [expenseForm, setExpenseForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
@@ -166,6 +180,19 @@ export default function ManageEvents() {
     }
   };
 
+  const fetchExpenses = async id => {
+    try {
+      const res = await fetch(`${API_BASE}/api/events/${id}/expenses`, {
+        headers: { Accept: 'application/json', ...getAuthHeaders() },
+      });
+      const data = await res.json().catch(() => []);
+      if (!res.ok) throw new Error(data.message || `Expenses request failed ${res.status}`);
+      setExpenses(prev => ({ ...prev, [id]: Array.isArray(data) ? data : [] }));
+    } catch {
+      setExpenses(prev => ({ ...prev, [id]: [] }));
+    }
+  };
+
   const fetchEvents = useCallback(async () => {
     const authHeaders = getAuthHeaders();
     const res = await fetch(`${API_BASE}/api/events?limit=100&order=asc`, {
@@ -175,7 +202,10 @@ export default function ManageEvents() {
     if (!res.ok) throw new Error(data.message || `Events request failed ${res.status}`);
     const rows = Array.isArray(data) ? data : [];
     setEvents(rows);
-    await Promise.all(rows.map(evt => fetchSupplies(eventId(evt))));
+    await Promise.all(rows.map(evt => Promise.all([
+      fetchSupplies(eventId(evt)),
+      fetchExpenses(eventId(evt)),
+    ])));
     return rows;
   }, []);
 
@@ -459,6 +489,45 @@ export default function ManageEvents() {
     await saveAsset(`${API_BASE}/api/events/${id}/expenses/${expenseId}/receipt`, 'DELETE');
   };
 
+  const saveExpense = async id => {
+    const form = expenseForm[id] || blankExpense();
+    if (!form.amount || !form.expenseDate) {
+      setActionError('Expense amount and date are required.');
+      return;
+    }
+
+    const method = form.editingId ? 'PUT' : 'POST';
+    const url = form.editingId
+      ? `${API_BASE}/api/events/${id}/expenses/${form.editingId}`
+      : `${API_BASE}/api/events/${id}/expenses`;
+    await saveAsset(url, method, {
+      vendorId: form.vendorId || null,
+      amount: Number(form.amount) || 0,
+      expenseDate: form.expenseDate,
+      category: form.category.trim() || null,
+      description: form.description.trim() || null,
+    });
+    setExpenseForm(prev => ({ ...prev, [id]: blankExpense() }));
+  };
+
+  const editExpense = (id, expense) => {
+    setExpenseForm(prev => ({
+      ...prev,
+      [id]: {
+        vendorId: expense.vendor_id || '',
+        amount: expense.amount == null ? '' : String(expense.amount),
+        expenseDate: inputDate(expense.expense_date),
+        category: expense.category || '',
+        description: expense.description || '',
+        editingId: expense.expense_id,
+      },
+    }));
+  };
+
+  const deleteExpense = async (id, expenseId) => {
+    await saveAsset(`${API_BASE}/api/events/${id}/expenses/${expenseId}`, 'DELETE');
+  };
+
   const saveAsset = async (url, method, body) => {
     setActionError('');
     try {
@@ -509,6 +578,7 @@ export default function ManageEvents() {
               const id = eventId(evt);
               const form = supplyForm[id] || blankSupply();
               const list = supplies[id] || [];
+              const expenseList = expenses[id] || [];
               const canManage = canManageEvent(user, evt);
 
               return (
@@ -625,6 +695,43 @@ export default function ManageEvents() {
 
                   {canManage && (
                     <section style={styles.assetGrid}>
+                      <div style={styles.assetPanelWide}>
+                        <h3 style={styles.sectionTitle}>Expenses</h3>
+                        {expenseList.map(expense => (
+                          <div key={expense.expense_id} style={styles.assetRow}>
+                            <span>{formatCurrency(expense.amount)}</span>
+                            <span>{formatDate(expense.expense_date)} - {display(expense.category)}</span>
+                            <div style={styles.inlineActions}>
+                              {expense.receipt_url && <button type="button" onClick={() => openReceipt(id, expense.expense_id).catch(err => setActionError(err.message))} style={styles.smallButton}>Receipt</button>}
+                              <label style={styles.smallButton}>
+                                {expense.receipt_url ? 'Replace' : 'Upload Receipt'}
+                                <input
+                                  type="file"
+                                  accept="application/pdf,image/png,image/jpeg,image/webp"
+                                  onChange={event => {
+                                    const file = event.target.files?.[0];
+                                    if (file) uploadReceipt(id, expense.expense_id, file).catch(() => {});
+                                    event.target.value = '';
+                                  }}
+                                  style={styles.fileInput}
+                                />
+                              </label>
+                              {expense.receipt_url && <button type="button" onClick={() => deleteReceipt(id, expense.expense_id).catch(() => {})} style={styles.dangerSmallButton}>Remove Receipt</button>}
+                              <button type="button" onClick={() => editExpense(id, expense)} style={styles.smallButton}>Edit</button>
+                              <button type="button" onClick={() => deleteExpense(id, expense.expense_id).catch(() => {})} style={styles.dangerSmallButton}>Delete</button>
+                            </div>
+                          </div>
+                        ))}
+                        <div style={styles.compactForm}>
+                          <input placeholder="Vendor ID" value={(expenseForm[id] || blankExpense()).vendorId} onChange={event => setExpenseForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankExpense()), vendorId: event.target.value } }))} style={styles.input} />
+                          <input placeholder="Amount" type="number" min="0" step="0.01" value={(expenseForm[id] || blankExpense()).amount} onChange={event => setExpenseForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankExpense()), amount: event.target.value } }))} style={styles.input} />
+                          <input type="date" value={(expenseForm[id] || blankExpense()).expenseDate} onChange={event => setExpenseForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankExpense()), expenseDate: event.target.value } }))} style={styles.input} />
+                          <input placeholder="Category" value={(expenseForm[id] || blankExpense()).category} onChange={event => setExpenseForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankExpense()), category: event.target.value } }))} style={styles.input} />
+                          <input placeholder="Description" value={(expenseForm[id] || blankExpense()).description} onChange={event => setExpenseForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankExpense()), description: event.target.value } }))} style={styles.input} />
+                          <button type="button" onClick={() => saveExpense(id).catch(() => {})} style={styles.primaryButton}>{(expenseForm[id] || blankExpense()).editingId ? 'Update Expense' : 'Add Expense'}</button>
+                        </div>
+                      </div>
+
                       <div style={styles.assetPanel}>
                         <h3 style={styles.sectionTitle}>Event Contacts</h3>
                         {(evt.contacts || []).map(contact => (

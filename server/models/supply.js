@@ -264,6 +264,124 @@ export async function updateEventExpenseReceipt(expenseId, receiptUrl) {
   return getEventExpenseById(expense.expense_id);
 }
 
+function normalizeExpense(data = {}) {
+  const amount = Number(data.amount);
+  if (!Number.isFinite(amount) || amount < 0) {
+    const err = new Error('Expense amount must be a non-negative number');
+    err.status = 400;
+    throw err;
+  }
+
+  const expenseDate = String(data.expenseDate ?? data.expense_date ?? '').trim();
+  if (!expenseDate) {
+    const err = new Error('Expense date is required');
+    err.status = 400;
+    throw err;
+  }
+
+  const vendorId = data.vendorId ?? data.vendor_id;
+  const parsedVendorId = vendorId === undefined || vendorId === null || vendorId === ''
+    ? null
+    : Number(vendorId);
+  if (parsedVendorId !== null && (!Number.isInteger(parsedVendorId) || parsedVendorId <= 0)) {
+    const err = new Error('Vendor id must be a positive integer');
+    err.status = 400;
+    throw err;
+  }
+
+  return {
+    vendorId: parsedVendorId,
+    amount,
+    expenseDate,
+    category: String(data.category || '').trim() || null,
+    description: String(data.description || '').trim() || null,
+  };
+}
+
+export async function listEventExpenses(eventId) {
+  const parsedEventId = Number(eventId);
+  if (!Number.isInteger(parsedEventId) || parsedEventId <= 0) {
+    const err = new Error('Invalid event id');
+    err.status = 400;
+    throw err;
+  }
+
+  return pool.query(
+    `SELECT ee.expense_id,
+            ee.event_id,
+            ee.vendor_id,
+            v.company_name AS vendor_name,
+            ee.amount,
+            ee.expense_date,
+            ee.category,
+            ee.description,
+            ee.receipt_url
+       FROM EventExpense ee
+       LEFT JOIN Vendor v ON ee.vendor_id = v.vendor_id
+      WHERE ee.event_id = ?
+      ORDER BY ee.expense_date DESC, ee.expense_id DESC`,
+    [parsedEventId]
+  );
+}
+
+export async function createEventExpense(eventId, data) {
+  const parsedEventId = Number(eventId);
+  if (!Number.isInteger(parsedEventId) || parsedEventId <= 0) {
+    const err = new Error('Invalid event id');
+    err.status = 400;
+    throw err;
+  }
+
+  const expense = normalizeExpense(data);
+  const result = await pool.query(
+    `INSERT INTO EventExpense
+       (event_id, vendor_id, amount, expense_date, category, description, receipt_url)
+     VALUES (?,?,?,?,?,?,NULL)`,
+    [
+      parsedEventId,
+      expense.vendorId,
+      expense.amount,
+      expense.expenseDate,
+      expense.category,
+      expense.description,
+    ]
+  );
+  return getEventExpenseById(result.insertId);
+}
+
+export async function updateEventExpense(expenseId, data) {
+  const existing = await getEventExpenseById(expenseId);
+  const expense = normalizeExpense(data);
+  await pool.query(
+    `UPDATE EventExpense
+        SET vendor_id = ?,
+            amount = ?,
+            expense_date = ?,
+            category = ?,
+            description = ?
+      WHERE expense_id = ?`,
+    [
+      expense.vendorId,
+      expense.amount,
+      expense.expenseDate,
+      expense.category,
+      expense.description,
+      existing.expense_id,
+    ]
+  );
+  return getEventExpenseById(existing.expense_id);
+}
+
+export async function deleteEventExpense(expenseId) {
+  const expense = await getEventExpenseById(expenseId);
+  await pool.query(
+    `DELETE FROM EventExpense
+      WHERE expense_id = ?`,
+    [expense.expense_id]
+  );
+  return expense;
+}
+
 /**
  * Upsert vendor, then insert a new item row.
  * Expects data.event_id in the payload instead of URL.
