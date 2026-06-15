@@ -27,6 +27,9 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioDraft, setBioDraft] = useState('');
+  const [savingBio, setSavingBio] = useState(false);
   const [error, setError] = useState('');
 
   const loadPhoto = async () => {
@@ -60,6 +63,7 @@ export default function Profile() {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message || `Profile request failed ${res.status}`);
         setProfile(data);
+        setBioDraft(data.bio || '');
         localStorage.setItem('user', JSON.stringify(data));
         if (data.photoUrl) await loadPhoto();
       } catch (err) {
@@ -151,6 +155,44 @@ export default function Profile() {
     }
   };
 
+  const startBioEdit = () => {
+    setBioDraft(profile?.bio || '');
+    setEditingBio(true);
+    setError('');
+  };
+
+  const cancelBioEdit = () => {
+    setBioDraft(profile?.bio || '');
+    setEditingBio(false);
+  };
+
+  const saveBio = async () => {
+    setSavingBio(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/profile/bio`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ bio: bioDraft }),
+      });
+      const updated = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(updated.message || `Bio save failed ${res.status}`);
+
+      setProfile(updated);
+      setBioDraft(updated.bio || '');
+      localStorage.setItem('user', JSON.stringify(updated));
+      setEditingBio(false);
+    } catch (err) {
+      setError(err.message || 'Failed to save bio');
+    } finally {
+      setSavingBio(false);
+    }
+  };
+
   return (
     <Layout>
       <main style={styles.page}>
@@ -208,7 +250,29 @@ export default function Profile() {
               </div>
               <div style={styles.fieldWide}>
                 <dt style={styles.label}>Bio</dt>
-                <dd style={styles.value}>{display(profile.bio)}</dd>
+                <dd style={styles.value}>
+                  {editingBio ? (
+                    <div style={styles.bioEditor}>
+                      <textarea
+                        value={bioDraft}
+                        onChange={event => setBioDraft(event.target.value)}
+                        rows={5}
+                        style={styles.textarea}
+                      />
+                      <div style={styles.bioActions}>
+                        <button type="button" onClick={cancelBioEdit} disabled={savingBio} style={styles.secondaryButton}>Cancel</button>
+                        <button type="button" onClick={saveBio} disabled={savingBio} style={styles.primaryButton}>
+                          {savingBio ? 'Saving...' : 'Save Bio'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={styles.bioDisplay}>
+                      <span>{display(profile.bio)}</span>
+                      <button type="button" onClick={startBioEdit} style={styles.secondaryButton}>Edit Bio</button>
+                    </div>
+                  )}
+                </dd>
               </div>
               <div style={styles.field}>
                 <dt style={styles.label}>Created Account At</dt>
@@ -352,6 +416,46 @@ const styles = {
     color: '#fff',
     fontWeight: 800,
     cursor: 'pointer',
+  },
+  secondaryButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
+    padding: '0 14px',
+    border: '1px solid #d7dce2',
+    borderRadius: 6,
+    background: '#fff',
+    color: '#003e83',
+    fontWeight: 800,
+    cursor: 'pointer',
+  },
+  textarea: {
+    width: '100%',
+    minHeight: 120,
+    padding: 10,
+    border: '1px solid #d7dce2',
+    borderRadius: 6,
+    color: '#1b365d',
+    fontFamily: 'Montserrat, sans-serif',
+    fontSize: 14,
+    resize: 'vertical',
+    boxSizing: 'border-box',
+  },
+  bioEditor: {
+    display: 'grid',
+    gap: 10,
+  },
+  bioActions: {
+    display: 'flex',
+    gap: 10,
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+  },
+  bioDisplay: {
+    display: 'grid',
+    gap: 10,
+    justifyItems: 'start',
   },
   fileInput: {
     position: 'absolute',

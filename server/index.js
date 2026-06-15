@@ -45,6 +45,7 @@ import {
 
 import {
   getUserByUsername,
+  updateUserBio,
   updateUserPhotoUrl,
   createAccountRequest,
   listPendingAccountRequests,
@@ -509,6 +510,17 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/profile', requireAuth, (req, res) => {
   res.json(publicUser(req.user));
+});
+
+app.put('/api/profile/bio', requireAuth, async (req, res) => {
+  try {
+    const updated = await updateUserBio(req.user.id, req.body.bio);
+    res.json(publicUser(updated));
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('PUT /api/profile/bio error', err);
+    res.status(500).json({ message: 'Failed to save profile bio' });
+  }
 });
 
 app.post('/api/profile/photo/upload-url', requireAuth, async (req, res) => {

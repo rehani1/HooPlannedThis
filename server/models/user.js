@@ -167,6 +167,18 @@ export async function updateUserPhotoUrl(username, photoUrl) {
   return getUserByUsername(username);
 }
 
+export async function updateUserBio(username, bio) {
+  const value = String(bio || '').trim() || null;
+  await pool.query(
+    `UPDATE CouncilMember
+        SET bio = ?
+      WHERE computing_id = ?`,
+    [value, username]
+  );
+
+  return getUserByUsername(username);
+}
+
 function normalizeCommitteeName(committee) {
   const committeeName = committee?.trim();
   const hasCommittee =
