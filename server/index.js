@@ -153,6 +153,23 @@ function publicUser(user) {
   };
 }
 
+function publicEventDocument(document) {
+  return {
+    document_id: document.document_id,
+    event_id: document.event_id,
+    uploaded_by: document.uploaded_by,
+    document_name: document.document_name,
+    document_type: document.document_type,
+    original_filename: document.original_filename,
+    content_type: document.content_type,
+    file_size_bytes: document.file_size_bytes,
+    file_category: document.file_category,
+    visibility: document.visibility,
+    uploaded_at: document.uploaded_at,
+    updated_at: document.updated_at,
+  };
+}
+
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -894,7 +911,7 @@ app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
     }
 
     const key = String(req.body.key || '');
-    const { eventFilesPrefix } = getS3Config();
+    const { bucketName, eventFilesPrefix } = getS3Config();
     const expectedPrefix = [
       eventFilesPrefix,
       `council-years/${Number(event.councilYearId ?? event.council_year_id)}`,
@@ -910,6 +927,13 @@ app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
       documentName: req.body.documentName,
       documentType: req.body.documentType,
       fileUrl: key,
+      s3Bucket: bucketName,
+      s3Key: key,
+      originalFilename: req.body.originalFilename ?? req.body.original_filename ?? req.body.filename ?? req.body.documentName,
+      contentType: req.body.contentType ?? req.body.content_type ?? req.body.documentType,
+      fileSizeBytes: req.body.fileSizeBytes ?? req.body.file_size_bytes ?? req.body.size,
+      fileCategory: req.body.fileCategory ?? req.body.file_category,
+      visibility: req.body.visibility,
     }, req.user.id);
 
     console.info('document metadata-created', {
@@ -919,14 +943,7 @@ app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
       result: 'allowed',
     });
 
-    res.status(201).json({
-      document_id: document.document_id,
-      event_id: document.event_id,
-      uploaded_by: document.uploaded_by,
-      document_name: document.document_name,
-      document_type: document.document_type,
-      uploaded_at: document.uploaded_at,
-    });
+    res.status(201).json(publicEventDocument(document));
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('POST /api/events/:eventId/documents error', err);
@@ -944,14 +961,7 @@ app.put('/api/events/:eventId/documents/:documentId', requireAuth, async (req, r
       return res.status(403).json({ message: 'You can only update documents for events you lead' });
     }
     const updated = await updateEventDocument(req.params.documentId, req.body);
-    res.json({
-      document_id: updated.document_id,
-      event_id: updated.event_id,
-      uploaded_by: updated.uploaded_by,
-      document_name: updated.document_name,
-      document_type: updated.document_type,
-      uploaded_at: updated.uploaded_at,
-    });
+    res.json(publicEventDocument(updated));
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('PUT /api/events/:eventId/documents/:documentId error', err);

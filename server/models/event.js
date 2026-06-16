@@ -2,6 +2,9 @@
 import pool from '../db.js';
 import { promisify } from 'util';
 
+const DOCUMENT_FILE_CATEGORIES = new Set(['flyer', 'contract', 'receipt', 'budget', 'promo', 'other']);
+const DOCUMENT_VISIBILITIES = new Set(['private', 'committee', 'council']);
+
 function requiredString(value, message) {
   const parsed = String(value || '').trim();
   if (!parsed) {
@@ -37,9 +40,31 @@ function nonNegativeInteger(value, message) {
   return parsed;
 }
 
+function optionalNonNegativeInteger(value, message) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    const err = new Error(message);
+    err.status = 400;
+    throw err;
+  }
+  return parsed;
+}
+
 function positiveInteger(value, message) {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
+    const err = new Error(message);
+    err.status = 400;
+    throw err;
+  }
+  return parsed;
+}
+
+function enumString(value, allowedValues, defaultValue, message) {
+  const parsed = optionalString(value);
+  if (!parsed) return defaultValue;
+  if (!allowedValues.has(parsed)) {
     const err = new Error(message);
     err.status = 400;
     throw err;
@@ -127,10 +152,42 @@ function normalizeAdvertisement(advertisement = {}) {
 }
 
 function normalizeEventDocument(document = {}) {
+  const documentType = optionalString(document.documentType ?? document.document_type ?? document.contentType ?? document.content_type);
+  const fileUrl = requiredString(
+    document.fileUrl ?? document.file_url ?? document.s3Key ?? document.s3_key ?? document.key,
+    'Document URL is required'
+  );
+
   return {
     documentName: requiredString(document.documentName ?? document.document_name, 'Document name is required'),
-    documentType: optionalString(document.documentType ?? document.document_type),
-    fileUrl: requiredString(document.fileUrl ?? document.file_url, 'Document URL is required'),
+    documentType,
+    fileUrl,
+    s3Bucket: optionalString(document.s3Bucket ?? document.s3_bucket),
+    s3Key: optionalString(document.s3Key ?? document.s3_key ?? document.key) || fileUrl,
+    originalFilename: optionalString(
+      document.originalFilename ??
+      document.original_filename ??
+      document.filename ??
+      document.documentName ??
+      document.document_name
+    ),
+    contentType: optionalString(document.contentType ?? document.content_type) || documentType,
+    fileSizeBytes: optionalNonNegativeInteger(
+      document.fileSizeBytes ?? document.file_size_bytes ?? document.size,
+      'Document file size must be a non-negative whole number'
+    ),
+    fileCategory: enumString(
+      document.fileCategory ?? document.file_category,
+      DOCUMENT_FILE_CATEGORIES,
+      'other',
+      'Document file category is not allowed'
+    ),
+    visibility: enumString(
+      document.visibility,
+      DOCUMENT_VISIBILITIES,
+      'private',
+      'Document visibility is not allowed'
+    ),
   };
 }
 
@@ -377,14 +434,22 @@ async function insertAdvertisementForEvent(query, eventId, advertisement, create
 async function insertDocumentForEvent(query, eventId, document, uploadedBy) {
   const result = await query(
     `INSERT INTO EventDocument
-       (event_id, uploaded_by, document_name, document_type, file_url)
-     VALUES (?,?,?,?,?)`,
+       (event_id, uploaded_by, s3_bucket, s3_key, document_name, document_type,
+        file_url, original_filename, content_type, file_size_bytes, file_category, visibility)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       eventId,
       uploadedBy,
+      document.s3Bucket,
+      document.s3Key,
       document.documentName,
       document.documentType,
       document.fileUrl,
+      document.originalFilename,
+      document.contentType,
+      document.fileSizeBytes,
+      document.fileCategory,
+      document.visibility,
     ]
   );
   return result.insertId;
@@ -432,7 +497,13 @@ async function attachEventDetails(query, events) {
               uploaded_by,
               document_name,
               document_type,
-              uploaded_at
+              original_filename,
+              content_type,
+              file_size_bytes,
+              file_category,
+              visibility,
+              uploaded_at,
+              updated_at
          FROM EventDocument
         WHERE event_id IN (${placeholders})
         ORDER BY uploaded_at DESC, document_id DESC`,
@@ -560,10 +631,18 @@ export async function getEventDocumentById(documentId) {
     `SELECT ed.document_id,
             ed.event_id,
             ed.uploaded_by,
+            ed.s3_bucket,
+            ed.s3_key,
             ed.document_name,
             ed.document_type,
             ed.file_url,
+            ed.original_filename,
+            ed.content_type,
+            ed.file_size_bytes,
+            ed.file_category,
+            ed.visibility,
             ed.uploaded_at,
+            ed.updated_at,
             e.committee_id,
             c.council_year_id
        FROM EventDocument ed
@@ -597,13 +676,27 @@ export async function updateEventDocument(documentId, data) {
   const id = positiveInteger(documentId, 'Invalid document id');
   const documentName = requiredString(data.documentName ?? data.document_name, 'Document name is required');
   const documentType = optionalString(data.documentType ?? data.document_type);
+  const fileCategory = enumString(
+    data.fileCategory ?? data.file_category,
+    DOCUMENT_FILE_CATEGORIES,
+    null,
+    'Document file category is not allowed'
+  );
+  const visibility = enumString(
+    data.visibility,
+    DOCUMENT_VISIBILITIES,
+    null,
+    'Document visibility is not allowed'
+  );
 
   await pool.query(
     `UPDATE EventDocument
         SET document_name = ?,
-            document_type = ?
+            document_type = ?,
+            file_category = COALESCE(?, file_category),
+            visibility = COALESCE(?, visibility)
       WHERE document_id = ?`,
-    [documentName, documentType, id]
+    [documentName, documentType, fileCategory, visibility, id]
   );
 
   return getEventDocumentById(id);
