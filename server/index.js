@@ -68,9 +68,16 @@ import {
   createDownloadUrl,
   createUploadUrl,
   deleteDocumentObject,
+  getDownloadUrlExpiresSeconds,
+  getUploadUrlExpiresSeconds,
   validateProfilePhotoUpload,
   validateUpload,
 } from './s3Documents.js'
+import {
+  getS3Config,
+  getS3ConfigSummary,
+  validateS3ConfigForStartup,
+} from './config/aws.js'
 
 dotenv.config()
 
@@ -78,6 +85,7 @@ const app         = express()
 const PORT        = process.env.PORT || 4000
 const JWT_SECRET  = process.env.JWT_SECRET
 if (!JWT_SECRET) throw new Error('Missing JWT_SECRET')
+validateS3ConfigForStartup()
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password'
 const ADMIN_SETUP_SCOPE = 'admin_setup'
@@ -618,7 +626,7 @@ app.post('/api/profile/photo/upload-url', requireAuth, async (req, res) => {
       result: 'allowed',
     });
 
-    res.json({ uploadUrl, key, expiresIn: 300 });
+    res.json({ uploadUrl, key, expiresIn: getUploadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('POST /api/profile/photo/upload-url error', err);
@@ -660,7 +668,7 @@ app.get('/api/profile/photo-url', requireAuth, async (req, res) => {
       result: 'allowed',
     });
 
-    res.json({ downloadUrl, expiresIn: 300 });
+    res.json({ downloadUrl, expiresIn: getDownloadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('GET /api/profile/photo-url error', err);
@@ -774,7 +782,7 @@ app.post('/api/events/:eventId/documents/upload-url', requireAuth, async (req, r
       result: 'allowed',
     });
 
-    res.json({ uploadUrl, key, expiresIn: 300 });
+    res.json({ uploadUrl, key, expiresIn: getUploadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('POST /api/events/:eventId/documents/upload-url error', err);
@@ -886,7 +894,9 @@ app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
     }
 
     const key = String(req.body.key || '');
+    const { eventFilesPrefix } = getS3Config();
     const expectedPrefix = [
+      eventFilesPrefix,
       `council-years/${Number(event.councilYearId ?? event.council_year_id)}`,
       `committees/${Number(event.committee_id)}`,
       `events/${Number(event.event_id)}`,
@@ -967,7 +977,7 @@ app.get('/api/events/:eventId/documents/:documentId/download-url', requireAuth, 
       result: 'allowed',
     });
 
-    res.json({ downloadUrl, expiresIn: 300 });
+    res.json({ downloadUrl, expiresIn: getDownloadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('GET /api/events/:eventId/documents/:documentId/download-url error', err);
@@ -994,7 +1004,7 @@ app.post('/api/events/:eventId/expenses/:expenseId/receipt/upload-url', requireA
       filename,
     });
     const uploadUrl = await createUploadUrl({ key, contentType });
-    res.json({ uploadUrl, key, expiresIn: 300 });
+    res.json({ uploadUrl, key, expiresIn: getUploadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('POST /api/events/:eventId/expenses/:expenseId/receipt/upload-url error', err);
@@ -1012,7 +1022,8 @@ app.put('/api/events/:eventId/expenses/:expenseId/receipt', requireAuth, async (
       return res.status(403).json({ message: 'You can only manage receipts for events you lead' });
     }
     const key = String(req.body.key || '');
-    const expectedPrefix = `council-years/${Number(expense.council_year_id)}/committees/${Number(expense.committee_id)}/events/${Number(expense.event_id)}/receipts/${Number(expense.expense_id)}/`;
+    const { eventFilesPrefix } = getS3Config();
+    const expectedPrefix = `${eventFilesPrefix}/council-years/${Number(expense.council_year_id)}/committees/${Number(expense.committee_id)}/events/${Number(expense.event_id)}/receipts/${Number(expense.expense_id)}/`;
     if (!key.startsWith(expectedPrefix)) {
       return res.status(400).json({ message: 'Invalid receipt key for this expense' });
     }
@@ -1035,7 +1046,7 @@ app.get('/api/events/:eventId/expenses/:expenseId/receipt/download-url', require
       return res.status(403).json({ message: 'You can only view receipts for events you lead' });
     }
     const downloadUrl = await createDownloadUrl(expense.receipt_url);
-    res.json({ downloadUrl, expiresIn: 300 });
+    res.json({ downloadUrl, expiresIn: getDownloadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('GET /api/events/:eventId/expenses/:expenseId/receipt/download-url error', err);
@@ -1217,9 +1228,18 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   const dbSummary = getDatabaseConfigSummary();
+  const s3Summary = getS3ConfigSummary();
   console.log(`Server running on port ${PORT}`)
   console.log(
     `Database configured for ${dbSummary.host}:${dbSummary.port}/${dbSummary.database} ` +
     `(ssl=${dbSummary.sslMode}, pool=${dbSummary.connectionLimit})`
+  )
+  console.log(
+    `S3 configured for region ${s3Summary.region} ` +
+    `(bucket=${s3Summary.bucketConfigured ? 'configured' : 'missing'}, ` +
+    `eventFilesPrefix=${s3Summary.eventFilesPrefix}, ` +
+    `uploadExpires=${s3Summary.uploadUrlExpiresSeconds}s, ` +
+    `downloadExpires=${s3Summary.downloadUrlExpiresSeconds}s, ` +
+    `customEndpoint=${s3Summary.customEndpointConfigured ? 'yes' : 'no'})`
   )
 })

@@ -2,13 +2,14 @@ import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import crypto from 'crypto';
 import path from 'path';
+import {
+  getS3ClientConfig,
+  getS3Config,
+  requireS3BucketName,
+} from './config/aws.js';
 
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
-const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
-const UPLOAD_URL_SECONDS = 300;
-const DOWNLOAD_URL_SECONDS = 300;
 
 const ALLOWED_CONTENT_TYPES = new Set([
   'application/pdf',
@@ -26,16 +27,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/webp',
 ]);
 
-const s3 = new S3Client({ region: AWS_REGION });
-
-function requireBucket() {
-  if (!S3_BUCKET_NAME) {
-    const err = new Error('S3_BUCKET_NAME is not configured');
-    err.status = 500;
-    throw err;
-  }
-  return S3_BUCKET_NAME;
-}
+const s3 = new S3Client(getS3ClientConfig());
 
 function safeFilename(filename) {
   const base = path.basename(String(filename || 'document'));
@@ -77,7 +69,9 @@ export function validateProfilePhotoUpload({ contentType, size }) {
 
 export function buildDocumentKey({ councilYearId, committeeId, eventId, filename }) {
   const randomId = crypto.randomUUID();
+  const { eventFilesPrefix } = getS3Config();
   return [
+    eventFilesPrefix,
     `council-years/${Number(councilYearId)}`,
     `committees/${Number(committeeId)}`,
     `events/${Number(eventId)}`,
@@ -97,7 +91,9 @@ export function buildProfilePhotoKey({ computingId, filename }) {
 
 export function buildReceiptKey({ councilYearId, committeeId, eventId, expenseId, filename }) {
   const randomId = crypto.randomUUID();
+  const { eventFilesPrefix } = getS3Config();
   return [
+    eventFilesPrefix,
     `council-years/${Number(councilYearId)}`,
     `committees/${Number(committeeId)}`,
     `events/${Number(eventId)}`,
@@ -108,29 +104,39 @@ export function buildReceiptKey({ councilYearId, committeeId, eventId, expenseId
 }
 
 export async function createUploadUrl({ key, contentType }) {
+  const { uploadUrlExpiresSeconds } = getS3Config();
   const command = new PutObjectCommand({
-    Bucket: requireBucket(),
+    Bucket: requireS3BucketName(),
     Key: key,
     ContentType: contentType,
   });
 
-  return getSignedUrl(s3, command, { expiresIn: UPLOAD_URL_SECONDS });
+  return getSignedUrl(s3, command, { expiresIn: uploadUrlExpiresSeconds });
 }
 
 export async function createDownloadUrl(key) {
+  const { downloadUrlExpiresSeconds } = getS3Config();
   const command = new GetObjectCommand({
-    Bucket: requireBucket(),
+    Bucket: requireS3BucketName(),
     Key: key,
   });
 
-  return getSignedUrl(s3, command, { expiresIn: DOWNLOAD_URL_SECONDS });
+  return getSignedUrl(s3, command, { expiresIn: downloadUrlExpiresSeconds });
 }
 
 export async function deleteDocumentObject(key) {
   const command = new DeleteObjectCommand({
-    Bucket: requireBucket(),
+    Bucket: requireS3BucketName(),
     Key: key,
   });
 
   await s3.send(command);
+}
+
+export function getUploadUrlExpiresSeconds() {
+  return getS3Config().uploadUrlExpiresSeconds;
+}
+
+export function getDownloadUrlExpiresSeconds() {
+  return getS3Config().downloadUrlExpiresSeconds;
 }
