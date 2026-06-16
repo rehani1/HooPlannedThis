@@ -1001,7 +1001,12 @@ app.get('/api/events/:eventId/documents/:documentId/download-url', requireAuth, 
       return res.status(403).json({ message: 'You can only view documents for events you lead' });
     }
 
-    const downloadUrl = await createDownloadUrl(document.file_url);
+    const objectKey = document.s3_key || document.file_url;
+    if (!objectKey) {
+      return res.status(404).json({ message: 'Document object key not found' });
+    }
+
+    const downloadUrl = await createDownloadUrl(objectKey);
     console.info('document read-url-created', {
       user: req.user.id,
       eventId: document.event_id,
@@ -1009,7 +1014,11 @@ app.get('/api/events/:eventId/documents/:documentId/download-url', requireAuth, 
       result: 'allowed',
     });
 
-    res.json({ downloadUrl, expiresIn: getDownloadUrlExpiresSeconds() });
+    res.json({
+      document: publicEventDocument(document),
+      downloadUrl,
+      expiresIn: getDownloadUrlExpiresSeconds(),
+    });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('GET /api/events/:eventId/documents/:documentId/download-url error', err);
