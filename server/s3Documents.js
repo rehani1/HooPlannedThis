@@ -33,7 +33,18 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/webp',
 ]);
 
-const s3 = new S3Client(getS3ClientConfig());
+let s3 = new S3Client(getS3ClientConfig());
+let signedUrlFactory = getSignedUrl;
+
+export function setS3DocumentTestHooks({ s3Client, createSignedUrl } = {}) {
+  if (s3Client) s3 = s3Client;
+  if (createSignedUrl) signedUrlFactory = createSignedUrl;
+}
+
+export function resetS3DocumentTestHooks() {
+  s3 = new S3Client(getS3ClientConfig());
+  signedUrlFactory = getSignedUrl;
+}
 
 function getS3ErrorCode(err) {
   return err?.name || err?.Code || err?.code || 'UnknownS3Error';
@@ -193,7 +204,7 @@ export async function createUploadUrl({ key, contentType }) {
     ContentType: contentType,
   });
 
-  return getSignedUrl(s3, command, { expiresIn: uploadUrlExpiresSeconds });
+  return signedUrlFactory(s3, command, { expiresIn: uploadUrlExpiresSeconds });
 }
 
 export async function createDownloadUrl(key) {
@@ -203,7 +214,7 @@ export async function createDownloadUrl(key) {
     Key: key,
   });
 
-  return getSignedUrl(s3, command, { expiresIn: downloadUrlExpiresSeconds });
+  return signedUrlFactory(s3, command, { expiresIn: downloadUrlExpiresSeconds });
 }
 
 export async function deleteDocumentObject(key) {

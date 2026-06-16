@@ -158,7 +158,7 @@ function normalizeAdvertisement(advertisement = {}) {
   };
 }
 
-function normalizeEventDocument(document = {}) {
+export function normalizeEventDocument(document = {}) {
   const documentType = optionalString(document.documentType ?? document.document_type ?? document.contentType ?? document.content_type);
   const fileUrl = requiredString(
     document.fileUrl ?? document.file_url ?? document.s3Key ?? document.s3_key ?? document.key,

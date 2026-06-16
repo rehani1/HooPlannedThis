@@ -30,6 +30,12 @@ import committeesRouter, { getCommitteeById, updateCommittee } from './models/co
 import { createAdvisor, getAdvisors, updateAdvisor } from './models/advisor.js';
 import { getCommitteeBudgets, getTotalCouncilBudget } from './models/budget.js';
 import { resetApplicationData } from './models/adminReset.js';
+import {
+  canManageCommittee,
+  canManageDocument,
+  canManageEvent,
+  canManageExpense,
+} from './authorization.js';
 
 import {
     listItemsByEvent,
@@ -208,52 +214,6 @@ async function requireAuth(req, res, next) {
     console.error('Auth error:', err);
     return res.status(403).json({ message: 'Invalid token' });
   }
-}
-
-function isCommitteeLeadRole(role) {
-  const value = String(role || '').toLowerCase().replace(/[\s-]+/g, '_');
-  return ['committee_chair', 'chair', 'committee_lead', 'lead'].includes(value);
-}
-
-function canManageCommittee(user, committee) {
-  const councilYearId = Number(committee.councilYearId);
-  const executiveForCouncil = (user.executivePositions || []).some(position =>
-    Number(position.councilYearId) === councilYearId
-  );
-  const leadForCommittee = (user.committeeMemberships || []).some(membership =>
-    Number(membership.committeeId) === Number(committee.id) &&
-    isCommitteeLeadRole(membership.role)
-  );
-
-  return executiveForCouncil || leadForCommittee;
-}
-
-function canManageEvent(user, event) {
-  const councilYearId = Number(event.councilYearId ?? event.council_year_id);
-  const committeeId = Number(event.committee_id ?? event.committeeId);
-  const executiveForCouncil = (user.executivePositions || []).some(position =>
-    Number(position.councilYearId) === councilYearId
-  );
-  const leadForCommittee = (user.committeeMemberships || []).some(membership =>
-    Number(membership.committeeId) === committeeId &&
-    isCommitteeLeadRole(membership.role)
-  );
-
-  return executiveForCouncil || leadForCommittee;
-}
-
-function canManageDocument(user, document) {
-  return canManageEvent(user, {
-    councilYearId: document.council_year_id,
-    committee_id: document.committee_id,
-  });
-}
-
-function canManageExpense(user, expense) {
-  return canManageEvent(user, {
-    councilYearId: expense.council_year_id,
-    committee_id: expense.committee_id,
-  });
 }
 
 app.get('/api/health', async (req, res) => {
