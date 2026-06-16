@@ -479,6 +479,7 @@ export default function Events() {
                               style={styles.documentButton}
                             >
                               {document.document_name}
+                              {document.file_category && ` - ${document.file_category}`}
                             </button>
                           ))}
                         </div>

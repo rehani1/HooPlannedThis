@@ -8,6 +8,21 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+const DOCUMENT_CATEGORY_OPTIONS = [
+  ['flyer', 'Flyer'],
+  ['contract', 'Contract'],
+  ['receipt', 'Receipt'],
+  ['budget', 'Budget'],
+  ['promo', 'Promo'],
+  ['other', 'Other'],
+];
+
+const DOCUMENT_VISIBILITY_OPTIONS = [
+  ['private', 'Private'],
+  ['committee', 'Committee'],
+  ['council', 'Council'],
+];
+
 const EMPTY_EVENT = {
   name: '',
   eventDate: '',
@@ -72,6 +87,8 @@ const EMPTY_ADVERTISEMENT = {
 const EMPTY_DOCUMENT = {
   documentName: '',
   documentType: '',
+  fileCategory: 'other',
+  visibility: 'private',
   file: null,
 };
 
@@ -477,6 +494,10 @@ export default function CreateEvent() {
         filename: file.name,
         contentType: file.type,
         size: file.size,
+        documentName: document.documentName.trim(),
+        documentType: document.documentType.trim() || file.type,
+        fileCategory: document.fileCategory,
+        visibility: document.visibility,
       }),
     });
 
@@ -499,6 +520,11 @@ export default function CreateEvent() {
       body: JSON.stringify({
         documentName: document.documentName.trim(),
         documentType: document.documentType.trim() || file.type,
+        originalFilename: file.name,
+        contentType: file.type,
+        fileSizeBytes: file.size,
+        fileCategory: document.fileCategory,
+        visibility: document.visibility,
         key: uploadData.key,
       }),
     });
@@ -934,6 +960,30 @@ export default function CreateEvent() {
                           placeholder="Receipt, flyer, contract"
                           style={styles.input}
                         />
+                      </label>
+                      <label style={styles.label}>
+                        Category
+                        <select
+                          value={document.fileCategory}
+                          onChange={event => updateDocument(index, 'fileCategory', event.target.value)}
+                          style={styles.input}
+                        >
+                          {DOCUMENT_CATEGORY_OPTIONS.map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label style={styles.label}>
+                        Visibility
+                        <select
+                          value={document.visibility}
+                          onChange={event => updateDocument(index, 'visibility', event.target.value)}
+                          style={styles.input}
+                        >
+                          {DOCUMENT_VISIBILITY_OPTIONS.map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </select>
                       </label>
                       <label style={styles.labelWide}>
                         File *

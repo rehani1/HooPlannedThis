@@ -4,6 +4,21 @@ import Layout from '../components/Layout';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+const DOCUMENT_CATEGORY_OPTIONS = [
+  ['flyer', 'Flyer'],
+  ['contract', 'Contract'],
+  ['receipt', 'Receipt'],
+  ['budget', 'Budget'],
+  ['promo', 'Promo'],
+  ['other', 'Other'],
+];
+
+const DOCUMENT_VISIBILITY_OPTIONS = [
+  ['private', 'Private'],
+  ['committee', 'Committee'],
+  ['council', 'Council'],
+];
+
 function blankSupply() {
   return {
     name: '',
@@ -40,7 +55,14 @@ function blankAdvertisement() {
 }
 
 function blankDocument() {
-  return { documentName: '', documentType: '', file: null, editingId: '' };
+  return {
+    documentName: '',
+    documentType: '',
+    fileCategory: 'other',
+    visibility: 'private',
+    file: null,
+    editingId: '',
+  };
 }
 
 function blankExpense() {
@@ -401,13 +423,21 @@ export default function ManageEvents() {
     const uploadRes = await fetch(`${API_BASE}/api/events/${id}/documents/upload-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ filename: form.file.name, contentType: form.file.type, size: form.file.size }),
+      body: JSON.stringify({
+        filename: form.file.name,
+        contentType: form.file.type,
+        size: form.file.size,
+        documentName: form.documentName.trim(),
+        documentType: form.documentType.trim() || form.file.type,
+        fileCategory: form.fileCategory,
+        visibility: form.visibility,
+      }),
     });
     const uploadData = await uploadRes.json().catch(() => ({}));
     if (!uploadRes.ok) throw new Error(uploadData.message || `Upload URL failed ${uploadRes.status}`);
     const s3Res = await fetch(uploadData.uploadUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': form.file.type },
+      headers: uploadData.headers || { 'Content-Type': form.file.type },
       body: form.file,
     });
     if (!s3Res.ok) throw new Error(`S3 upload failed ${s3Res.status}`);
@@ -421,6 +451,8 @@ export default function ManageEvents() {
       await saveAsset(`${API_BASE}/api/events/${id}/documents/${form.editingId}`, 'PUT', {
         documentName: form.documentName.trim(),
         documentType: form.documentType.trim() || null,
+        fileCategory: form.fileCategory,
+        visibility: form.visibility,
       });
     } else {
       if (!form.file) return setActionError('Document file is required.');
@@ -428,6 +460,11 @@ export default function ManageEvents() {
       await saveAsset(`${API_BASE}/api/events/${id}/documents`, 'POST', {
         documentName: form.documentName.trim(),
         documentType: form.documentType.trim() || form.file.type,
+        originalFilename: form.file.name,
+        contentType: form.file.type,
+        fileSizeBytes: form.file.size,
+        fileCategory: form.fileCategory,
+        visibility: form.visibility,
         key,
       });
     }
@@ -440,6 +477,8 @@ export default function ManageEvents() {
       [id]: {
         documentName: document.document_name || '',
         documentType: document.document_type || '',
+        fileCategory: document.file_category || 'other',
+        visibility: document.visibility || 'private',
         file: null,
         editingId: document.document_id,
       },
@@ -789,7 +828,7 @@ export default function ManageEvents() {
                         {(evt.documents || []).map(document => (
                           <div key={document.document_id} style={styles.assetRow}>
                             <span>{display(document.document_name)}</span>
-                            <span>{display(document.document_type)}</span>
+                            <span>{display(document.file_category)} - {display(document.visibility)}</span>
                             <div style={styles.inlineActions}>
                               <button type="button" onClick={() => openDocument(id, document.document_id).catch(err => setActionError(err.message))} style={styles.smallButton}>Open</button>
                               <button type="button" onClick={() => editDocument(id, document)} style={styles.smallButton}>Edit</button>
@@ -800,6 +839,12 @@ export default function ManageEvents() {
                         <div style={styles.compactForm}>
                           <input placeholder="Document name" value={(documentForm[id] || blankDocument()).documentName} onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), documentName: event.target.value } }))} style={styles.input} />
                           <input placeholder="Document type" value={(documentForm[id] || blankDocument()).documentType} onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), documentType: event.target.value } }))} style={styles.input} />
+                          <select value={(documentForm[id] || blankDocument()).fileCategory} onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), fileCategory: event.target.value } }))} style={styles.input}>
+                            {DOCUMENT_CATEGORY_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                          </select>
+                          <select value={(documentForm[id] || blankDocument()).visibility} onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), visibility: event.target.value } }))} style={styles.input}>
+                            {DOCUMENT_VISIBILITY_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                          </select>
                           {!(documentForm[id] || blankDocument()).editingId && (
                             <input type="file" onChange={event => setDocumentForm(prev => ({ ...prev, [id]: { ...(prev[id] || blankDocument()), file: event.target.files?.[0] || null } }))} style={styles.input} />
                           )}
