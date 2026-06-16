@@ -66,10 +66,13 @@ import {
   buildDocumentKey,
   buildProfilePhotoKey,
   buildReceiptKey,
+  checkS3BucketAccess,
   createDownloadUrl,
   createUploadUrl,
   deleteDocumentObject,
+  describeS3Error,
   getDownloadUrlExpiresSeconds,
+  getS3ErrorLogFields,
   getUploadUrlExpiresSeconds,
   validateProfilePhotoUpload,
   validateUpload,
@@ -171,6 +174,16 @@ function publicEventDocument(document) {
   };
 }
 
+function logRouteError(label, err) {
+  const s3Fields = getS3ErrorLogFields(err);
+  if (s3Fields) {
+    console.error(label, s3Fields);
+    return;
+  }
+
+  console.error(label, err);
+}
+
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -257,6 +270,56 @@ app.get('/api/health', async (req, res) => {
     });
     res.status(503).json({ status: 'error', database: 'unavailable', message });
   }
+});
+
+app.get('/api/readiness', async (req, res) => {
+  const s3Summary = getS3ConfigSummary();
+  const checks = {
+    database: { status: 'pending' },
+    s3: {
+      status: 'pending',
+      region: s3Summary.region,
+      bucket: s3Summary.bucketConfigured ? 'configured' : 'missing',
+      eventFilesPrefix: s3Summary.eventFilesPrefix,
+    },
+  };
+
+  const [databaseResult, s3Result] = await Promise.allSettled([
+    checkDatabaseConnection(),
+    checkS3BucketAccess(),
+  ]);
+
+  if (databaseResult.status === 'fulfilled') {
+    checks.database = { status: 'ok' };
+  } else {
+    const err = databaseResult.reason;
+    const message = describeDatabaseError(err);
+    checks.database = { status: 'unavailable', message };
+    console.error('readiness database check failed', {
+      code: err?.code,
+      errno: err?.errno,
+      fatal: err?.fatal,
+      message,
+    });
+  }
+
+  if (s3Result.status === 'fulfilled') {
+    checks.s3 = { ...checks.s3, status: 'ok' };
+  } else {
+    const err = s3Result.reason;
+    const message = describeS3Error(err);
+    checks.s3 = { ...checks.s3, status: 'unavailable', message };
+    console.error('readiness s3 check failed', {
+      ...(getS3ErrorLogFields(err) || {}),
+      message,
+    });
+  }
+
+  const ready = checks.database.status === 'ok' && checks.s3.status === 'ok';
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ok' : 'error',
+    checks,
+  });
 });
 
 app.post('/api/admin/login', (req, res) => {
@@ -647,7 +710,7 @@ app.post('/api/profile/photo/upload-url', requireAuth, async (req, res) => {
     res.json({ uploadUrl, key, expiresIn: getUploadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('POST /api/profile/photo/upload-url error', err);
+    logRouteError('POST /api/profile/photo/upload-url error', err);
     res.status(500).json({ message: 'Failed to create profile photo upload URL' });
   }
 });
@@ -689,7 +752,7 @@ app.get('/api/profile/photo-url', requireAuth, async (req, res) => {
     res.json({ downloadUrl, expiresIn: getDownloadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('GET /api/profile/photo-url error', err);
+    logRouteError('GET /api/profile/photo-url error', err);
     res.status(500).json({ message: 'Failed to create profile photo URL' });
   }
 });
@@ -711,7 +774,7 @@ app.delete('/api/profile/photo', requireAuth, async (req, res) => {
     res.json(publicUser(updated));
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('DELETE /api/profile/photo error', err);
+    logRouteError('DELETE /api/profile/photo error', err);
     res.status(500).json({ message: 'Failed to remove profile photo' });
   }
 });
@@ -825,7 +888,7 @@ app.post('/api/events/:eventId/documents/upload-url', requireAuth, async (req, r
     });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('POST /api/events/:eventId/documents/upload-url error', err);
+    logRouteError('POST /api/events/:eventId/documents/upload-url error', err);
     res.status(500).json({ message: 'Failed to create upload URL' });
   }
 });
@@ -1038,7 +1101,7 @@ app.get('/api/events/:eventId/documents/:documentId/download-url', requireAuth, 
     });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('GET /api/events/:eventId/documents/:documentId/download-url error', err);
+    logRouteError('GET /api/events/:eventId/documents/:documentId/download-url error', err);
     res.status(500).json({ message: 'Failed to create download URL' });
   }
 });
@@ -1065,7 +1128,7 @@ app.post('/api/events/:eventId/expenses/:expenseId/receipt/upload-url', requireA
     res.json({ uploadUrl, key, expiresIn: getUploadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('POST /api/events/:eventId/expenses/:expenseId/receipt/upload-url error', err);
+    logRouteError('POST /api/events/:eventId/expenses/:expenseId/receipt/upload-url error', err);
     res.status(500).json({ message: 'Failed to create receipt upload URL' });
   }
 });
@@ -1107,7 +1170,7 @@ app.get('/api/events/:eventId/expenses/:expenseId/receipt/download-url', require
     res.json({ downloadUrl, expiresIn: getDownloadUrlExpiresSeconds() });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('GET /api/events/:eventId/expenses/:expenseId/receipt/download-url error', err);
+    logRouteError('GET /api/events/:eventId/expenses/:expenseId/receipt/download-url error', err);
     res.status(500).json({ message: 'Failed to create receipt download URL' });
   }
 });
@@ -1128,7 +1191,7 @@ app.delete('/api/events/:eventId/expenses/:expenseId/receipt', requireAuth, asyn
     res.sendStatus(204);
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('DELETE /api/events/:eventId/expenses/:expenseId/receipt error', err);
+    logRouteError('DELETE /api/events/:eventId/expenses/:expenseId/receipt error', err);
     res.status(500).json({ message: 'Failed to delete receipt' });
   }
 });
@@ -1154,8 +1217,7 @@ app.delete('/api/events/:eventId/documents/:documentId', requireAuth, async (req
       console.error('document object delete failed', {
         eventId: document.event_id,
         documentId: document.document_id,
-        code: s3Err?.name || s3Err?.Code || s3Err?.code,
-        status: s3Err?.$metadata?.httpStatusCode,
+        ...(getS3ErrorLogFields(s3Err) || {}),
       });
       return res.status(502).json({ message: 'Failed to delete document object; metadata was not removed' });
     }
@@ -1172,7 +1234,7 @@ app.delete('/api/events/:eventId/documents/:documentId', requireAuth, async (req
     res.sendStatus(204);
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
-    console.error('DELETE /api/events/:eventId/documents/:documentId error', err);
+    logRouteError('DELETE /api/events/:eventId/documents/:documentId error', err);
     res.status(500).json({ message: 'Failed to delete document' });
   }
 });
