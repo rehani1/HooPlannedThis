@@ -783,7 +783,7 @@ app.post('/api/events/:eventId/documents/upload-url', requireAuth, async (req, r
     }
 
     const { filename, contentType, size } = req.body;
-    validateUpload({ contentType, size });
+    validateUpload({ filename, contentType, size });
 
     const key = buildDocumentKey({
       councilYearId: event.councilYearId ?? event.council_year_id,
@@ -792,14 +792,36 @@ app.post('/api/events/:eventId/documents/upload-url', requireAuth, async (req, r
       filename,
     });
     const uploadUrl = await createUploadUrl({ key, contentType });
+    const { bucketName } = getS3Config();
+    const document = await createEventDocument(req.params.eventId, {
+      documentName: req.body.documentName ?? filename,
+      documentType: req.body.documentType ?? contentType,
+      fileUrl: key,
+      s3Bucket: bucketName,
+      s3Key: key,
+      originalFilename: filename,
+      contentType,
+      fileSizeBytes: size,
+      fileCategory: req.body.fileCategory ?? req.body.file_category,
+      visibility: req.body.visibility,
+    }, req.user.id);
 
     console.info('document upload-url-created', {
       user: req.user.id,
       eventId: event.event_id,
+      documentId: document.document_id,
       result: 'allowed',
     });
 
-    res.json({ uploadUrl, key, expiresIn: getUploadUrlExpiresSeconds() });
+    res.json({
+      fileId: document.document_id,
+      documentId: document.document_id,
+      document: publicEventDocument(document),
+      uploadUrl,
+      key,
+      headers: { 'Content-Type': contentType },
+      expiresIn: getUploadUrlExpiresSeconds(),
+    });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });
     console.error('POST /api/events/:eventId/documents/upload-url error', err);
@@ -1005,7 +1027,7 @@ app.post('/api/events/:eventId/expenses/:expenseId/receipt/upload-url', requireA
       return res.status(403).json({ message: 'You can only manage receipts for events you lead' });
     }
     const { filename, contentType, size } = req.body;
-    validateUpload({ contentType, size });
+    validateUpload({ filename, contentType, size });
     const key = buildReceiptKey({
       councilYearId: expense.council_year_id,
       committeeId: expense.committee_id,

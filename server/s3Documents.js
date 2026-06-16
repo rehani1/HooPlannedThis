@@ -37,7 +37,13 @@ function safeFilename(filename) {
     .slice(0, 120) || 'document';
 }
 
-export function validateUpload({ contentType, size }) {
+export function validateUpload({ filename, contentType, size }) {
+  if (!String(filename || '').trim()) {
+    const err = new Error('Filename is required');
+    err.status = 400;
+    throw err;
+  }
+
   if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
     const err = new Error('File type is not allowed');
     err.status = 400;

@@ -72,6 +72,13 @@ function enumString(value, allowedValues, defaultValue, message) {
   return parsed;
 }
 
+function hasProvidedField(data, fieldNames) {
+  return fieldNames.some(name => {
+    const value = data?.[name];
+    return value !== undefined && value !== null && value !== '';
+  });
+}
+
 function normalizeLocation(data = {}, message = 'Location name is required when adding a location') {
   const locationName = optionalString(data.locationName);
   const locationAddress = optionalString(data.locationAddress);
@@ -613,11 +620,58 @@ export async function createEvent(data) {
 
 export async function createEventDocument(eventId, data, uploadedBy) {
   const id = positiveInteger(eventId, 'Invalid event id');
+  const hasOriginalFilename = hasProvidedField(data, ['originalFilename', 'original_filename', 'filename']);
+  const hasContentType = hasProvidedField(data, ['contentType', 'content_type']);
+  const hasFileSizeBytes = hasProvidedField(data, ['fileSizeBytes', 'file_size_bytes', 'size']);
+  const hasFileCategory = hasProvidedField(data, ['fileCategory', 'file_category']);
+  const hasVisibility = hasProvidedField(data, ['visibility']);
   const document = normalizeEventDocument(data);
   const conn = await pool.getConnection();
   const query = promisify(conn.query).bind(conn);
 
   try {
+    const existingRows = await query(
+      `SELECT document_id
+         FROM EventDocument
+        WHERE event_id = ?
+          AND (s3_key = ? OR file_url = ?)
+        LIMIT 1`,
+      [id, document.s3Key, document.fileUrl]
+    );
+
+    if (existingRows.length) {
+      await query(
+        `UPDATE EventDocument
+            SET uploaded_by = COALESCE(?, uploaded_by),
+                s3_bucket = COALESCE(?, s3_bucket),
+                s3_key = ?,
+                document_name = ?,
+                document_type = COALESCE(?, document_type),
+                file_url = ?,
+                original_filename = COALESCE(?, original_filename),
+                content_type = COALESCE(?, content_type),
+                file_size_bytes = COALESCE(?, file_size_bytes),
+                file_category = COALESCE(?, file_category),
+                visibility = COALESCE(?, visibility)
+          WHERE document_id = ?`,
+        [
+          uploadedBy,
+          document.s3Bucket,
+          document.s3Key,
+          document.documentName,
+          document.documentType,
+          document.fileUrl,
+          hasOriginalFilename ? document.originalFilename : null,
+          hasContentType ? document.contentType : null,
+          hasFileSizeBytes ? document.fileSizeBytes : null,
+          hasFileCategory ? document.fileCategory : null,
+          hasVisibility ? document.visibility : null,
+          existingRows[0].document_id,
+        ]
+      );
+      return getEventDocumentById(existingRows[0].document_id);
+    }
+
     const documentId = await insertDocumentForEvent(query, id, document, uploadedBy);
     return getEventDocumentById(documentId);
   } finally {
