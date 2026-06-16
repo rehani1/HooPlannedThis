@@ -10,6 +10,7 @@ import {
   getEventById,
   getEventDocumentById,
   getEvents,
+  listEventDocuments,
   updateEventAdvertisement,
   updateEventContact,
   updateEventDocument,
@@ -925,6 +926,22 @@ app.delete('/api/events/:eventId/advertisements/:advertisementId', requireAuth, 
   }
 });
 
+app.get('/api/events/:eventId/documents', requireAuth, async (req, res) => {
+  try {
+    const event = await getEventById(req.params.eventId);
+    if (!canManageEvent(req.user, event)) {
+      return res.status(403).json({ message: 'You can only view documents for events you lead' });
+    }
+
+    const documents = await listEventDocuments(req.params.eventId);
+    res.json(documents.map(publicEventDocument));
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    console.error('GET /api/events/:eventId/documents error', err);
+    res.status(500).json({ message: 'Failed to list event documents' });
+  }
+});
+
 app.post('/api/events/:eventId/documents', requireAuth, async (req, res) => {
   try {
     const event = await getEventById(req.params.eventId);
@@ -1126,8 +1143,24 @@ app.delete('/api/events/:eventId/documents/:documentId', requireAuth, async (req
       return res.status(403).json({ message: 'You can only delete documents for events you lead' });
     }
 
+    const objectKey = document.s3_key || document.file_url;
+    if (!objectKey) {
+      return res.status(404).json({ message: 'Document object key not found' });
+    }
+
+    try {
+      await deleteDocumentObject(objectKey);
+    } catch (s3Err) {
+      console.error('document object delete failed', {
+        eventId: document.event_id,
+        documentId: document.document_id,
+        code: s3Err?.name || s3Err?.Code || s3Err?.code,
+        status: s3Err?.$metadata?.httpStatusCode,
+      });
+      return res.status(502).json({ message: 'Failed to delete document object; metadata was not removed' });
+    }
+
     const deleted = await deleteEventDocument(req.params.documentId);
-    await deleteDocumentObject(deleted.file_url);
 
     console.info('document deleted', {
       user: req.user.id,

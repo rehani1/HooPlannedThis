@@ -716,6 +716,28 @@ export async function getEventDocumentById(documentId) {
   return rows[0];
 }
 
+export async function listEventDocuments(eventId) {
+  const id = positiveInteger(eventId, 'Invalid event id');
+  return pool.query(
+    `SELECT document_id,
+            event_id,
+            uploaded_by,
+            document_name,
+            document_type,
+            original_filename,
+            content_type,
+            file_size_bytes,
+            file_category,
+            visibility,
+            uploaded_at,
+            updated_at
+       FROM EventDocument
+      WHERE event_id = ?
+      ORDER BY uploaded_at DESC, document_id DESC`,
+    [id]
+  );
+}
+
 export async function deleteEventDocument(documentId) {
   const document = await getEventDocumentById(documentId);
   await pool.query(
